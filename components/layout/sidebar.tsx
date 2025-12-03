@@ -6,13 +6,25 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/contexts/auth-context"
-import { LayoutDashboard, ArrowLeftRight, Tags, PiggyBank, BarChart3, LogOut, Menu, X, ChevronLeft } from "lucide-react"
+import {
+  LayoutDashboard,
+  ArrowLeftRight,
+  Tags,
+  PiggyBank,
+  BarChart3,
+  LogOut,
+  Menu,
+  X,
+  ChevronLeft,
+  HandCoins,
+} from "lucide-react"
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Transaksi", href: "/dashboard/transactions", icon: ArrowLeftRight },
   { name: "Kategori", href: "/dashboard/categories", icon: Tags },
   { name: "Anggaran", href: "/dashboard/budget", icon: PiggyBank },
+  { name: "Utang Piutang", href: "/dashboard/debts", icon: HandCoins },
   { name: "Laporan", href: "/dashboard/reports", icon: BarChart3 },
 ]
 

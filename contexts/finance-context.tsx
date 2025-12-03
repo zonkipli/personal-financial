@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
-import type { Category, Transaction, Budget } from "@/types"
+import type { Category, Transaction, Budget, Debt } from "@/types"
 import {
   getStoredCategories,
   setStoredCategories,
@@ -9,6 +9,8 @@ import {
   setStoredTransactions,
   getStoredBudgets,
   setStoredBudgets,
+  getStoredDebts,
+  setStoredDebts,
   generateId,
 } from "@/lib/storage"
 import { useAuth } from "./auth-context"
@@ -17,6 +19,7 @@ interface FinanceContextType {
   categories: Category[]
   transactions: Transaction[]
   budgets: Budget[]
+  debts: Debt[]
   addCategory: (category: Omit<Category, "id" | "userId" | "createdAt">) => void
   updateCategory: (id: string, category: Partial<Category>) => void
   deleteCategory: (id: string) => void
@@ -26,6 +29,11 @@ interface FinanceContextType {
   addBudget: (budget: Omit<Budget, "id" | "userId" | "createdAt">) => void
   updateBudget: (id: string, budget: Partial<Budget>) => void
   deleteBudget: (id: string) => void
+  addDebt: (debt: Omit<Debt, "id" | "userId" | "createdAt">) => void
+  updateDebt: (id: string, debt: Partial<Debt>) => void
+  deleteDebt: (id: string) => void
+  markDebtAsPaid: (id: string) => void
+  getDebtStats: () => { totalReceivable: number; totalPayable: number; balance: number }
   getMonthlyStats: (month: number, year: number) => { income: number; expense: number; balance: number }
   getBudgetStatus: (
     month: number,
@@ -40,21 +48,27 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const [categories, setCategories] = useState<Category[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [budgets, setBudgets] = useState<Budget[]>([])
+  const [debts, setDebts] = useState<Debt[]>([])
 
   useEffect(() => {
     if (user) {
       const storedCategories = getStoredCategories().filter((c) => c.userId === user.id)
       const storedTransactions = getStoredTransactions().filter((t) => t.userId === user.id)
       const storedBudgets = getStoredBudgets().filter((b) => b.userId === user.id)
+      const storedDebts = getStoredDebts().filter((d) => d.userId === user.id)
       setCategories(storedCategories)
       setTransactions(storedTransactions)
       setBudgets(storedBudgets)
+      setDebts(storedDebts)
     } else {
       setCategories([])
       setTransactions([])
       setBudgets([])
+      setDebts([])
     }
   }, [user])
+
+  // ... existing code for category functions ...
 
   // Category functions
   const addCategory = useCallback(
@@ -167,6 +181,60 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     [user],
   )
 
+  const addDebt = useCallback(
+    (debtData: Omit<Debt, "id" | "userId" | "createdAt">) => {
+      if (!user) return
+      const newDebt: Debt = {
+        ...debtData,
+        id: generateId("debt"),
+        userId: user.id,
+        createdAt: new Date().toISOString(),
+      }
+      const updatedDebts = [...getStoredDebts(), newDebt]
+      setStoredDebts(updatedDebts)
+      setDebts(updatedDebts.filter((d) => d.userId === user.id))
+    },
+    [user],
+  )
+
+  const updateDebt = useCallback(
+    (id: string, debtData: Partial<Debt>) => {
+      const allDebts = getStoredDebts()
+      const updatedDebts = allDebts.map((d) => (d.id === id ? { ...d, ...debtData } : d))
+      setStoredDebts(updatedDebts)
+      setDebts(updatedDebts.filter((d) => d.userId === user?.id))
+    },
+    [user],
+  )
+
+  const deleteDebt = useCallback(
+    (id: string) => {
+      const allDebts = getStoredDebts()
+      const updatedDebts = allDebts.filter((d) => d.id !== id)
+      setStoredDebts(updatedDebts)
+      setDebts(updatedDebts.filter((d) => d.userId === user?.id))
+    },
+    [user],
+  )
+
+  const markDebtAsPaid = useCallback(
+    (id: string) => {
+      updateDebt(id, { isPaid: true, paidDate: new Date().toISOString() })
+    },
+    [updateDebt],
+  )
+
+  const getDebtStats = useCallback(() => {
+    const unpaidDebts = debts.filter((d) => !d.isPaid)
+    const totalReceivable = unpaidDebts.filter((d) => d.type === "receivable").reduce((sum, d) => sum + d.amount, 0)
+    const totalPayable = unpaidDebts.filter((d) => d.type === "payable").reduce((sum, d) => sum + d.amount, 0)
+    return {
+      totalReceivable,
+      totalPayable,
+      balance: totalReceivable - totalPayable,
+    }
+  }, [debts])
+
   // Stats functions
   const getMonthlyStats = useCallback(
     (month: number, year: number) => {
@@ -202,6 +270,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         categories,
         transactions,
         budgets,
+        debts,
         addCategory,
         updateCategory,
         deleteCategory,
@@ -211,6 +280,11 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         addBudget,
         updateBudget,
         deleteBudget,
+        addDebt,
+        updateDebt,
+        deleteDebt,
+        markDebtAsPaid,
+        getDebtStats,
         getMonthlyStats,
         getBudgetStatus,
       }}

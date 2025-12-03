@@ -1,11 +1,12 @@
 // Local storage utility for data persistence
-import type { User, Category, Transaction, Budget } from "@/types"
+import type { User, Category, Transaction, Budget, Debt } from "@/types"
 
 const STORAGE_KEYS = {
   USER: "finance_user",
   CATEGORIES: "finance_categories",
   TRANSACTIONS: "finance_transactions",
   BUDGETS: "finance_budgets",
+  DEBTS: "finance_debts",
 }
 
 // User functions
@@ -58,6 +59,18 @@ export function getStoredBudgets(): Budget[] {
 export function setStoredBudgets(budgets: Budget[]): void {
   if (typeof window === "undefined") return
   localStorage.setItem(STORAGE_KEYS.BUDGETS, JSON.stringify(budgets))
+}
+
+// Debts functions
+export function getStoredDebts(): Debt[] {
+  if (typeof window === "undefined") return []
+  const data = localStorage.getItem(STORAGE_KEYS.DEBTS)
+  return data ? JSON.parse(data) : []
+}
+
+export function setStoredDebts(debts: Debt[]): void {
+  if (typeof window === "undefined") return
+  localStorage.setItem(STORAGE_KEYS.DEBTS, JSON.stringify(debts))
 }
 
 // Initialize default categories for new users

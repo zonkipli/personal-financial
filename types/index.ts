@@ -38,6 +38,19 @@ export interface Budget {
   createdAt: string
 }
 
+export interface Debt {
+  id: string
+  userId: string
+  type: "receivable" | "payable" // receivable = orang lain hutang ke kita, payable = kita hutang ke orang lain
+  personName: string
+  amount: number
+  description: string
+  dueDate: string | null
+  isPaid: boolean
+  paidDate: string | null
+  createdAt: string
+}
+
 export interface MonthlyReport {
   month: number
   year: number
