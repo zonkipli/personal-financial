@@ -8,16 +8,14 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
-import type { Category, Transaction, Budget, Debt, Wallet } from "@/types";
+import type { Category, Transaction, Budget, Debt } from "@/types";
 import { useAuth } from "./auth-context";
 
-// <CHANGE> Added wallet-related types and methods to context
 interface FinanceContextType {
   categories: Category[];
   transactions: Transaction[];
   budgets: Budget[];
   debts: Debt[];
-  wallets: Wallet[];
   isLoading: boolean;
   refreshData: () => Promise<void>;
   addCategory: (
@@ -42,11 +40,6 @@ interface FinanceContextType {
   updateDebt: (id: string, debt: Partial<Debt>) => Promise<void>;
   deleteDebt: (id: string) => Promise<void>;
   markDebtAsPaid: (id: string) => Promise<void>;
-  addWallet: (
-    wallet: Omit<Wallet, "id" | "userId" | "createdAt">
-  ) => Promise<void>;
-  updateWallet: (id: string, wallet: Partial<Wallet>) => Promise<void>;
-  deleteWallet: (id: string) => Promise<void>;
   getDebtStats: () => {
     totalReceivable: number;
     totalPayable: number;
@@ -60,7 +53,6 @@ interface FinanceContextType {
     month: number,
     year: number
   ) => { budget: number; spent: number; remaining: number; percentage: number };
-  getDefaultWallet: () => Wallet | undefined;
 }
 
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
@@ -71,7 +63,6 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [debts, setDebts] = useState<Debt[]>([]);
-  const [wallets, setWallets] = useState<Wallet[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const getHeaders = useCallback(() => {
@@ -81,35 +72,28 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     };
   }, [user]);
 
-  // <CHANGE> Added wallets to refreshData
   const refreshData = useCallback(async () => {
     if (!user) return;
     setIsLoading(true);
     try {
-      const [catRes, txnRes, budgetRes, debtRes, walletRes] = await Promise.all(
-        [
-          fetch("/api/categories", { headers: getHeaders() }),
-          fetch("/api/transactions", { headers: getHeaders() }),
-          fetch("/api/budgets", { headers: getHeaders() }),
-          fetch("/api/debts", { headers: getHeaders() }),
-          fetch("/api/wallets", { headers: getHeaders() }),
-        ]
-      );
+      const [catRes, txnRes, budgetRes, debtRes] = await Promise.all([
+        fetch("/api/categories", { headers: getHeaders() }),
+        fetch("/api/transactions", { headers: getHeaders() }),
+        fetch("/api/budgets", { headers: getHeaders() }),
+        fetch("/api/debts", { headers: getHeaders() }),
+      ]);
 
-      const [catData, txnData, budgetData, debtData, walletData] =
-        await Promise.all([
-          catRes.json(),
-          txnRes.json(),
-          budgetRes.json(),
-          debtRes.json(),
-          walletRes.json(),
-        ]);
+      const [catData, txnData, budgetData, debtData] = await Promise.all([
+        catRes.json(),
+        txnRes.json(),
+        budgetRes.json(),
+        debtRes.json(),
+      ]);
 
       if (catData.success) setCategories(catData.categories);
       if (txnData.success) setTransactions(txnData.transactions);
       if (budgetData.success) setBudgets(budgetData.budgets);
       if (debtData.success) setDebts(debtData.debts);
-      if (walletData.success) setWallets(walletData.wallets);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -125,11 +109,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       setTransactions([]);
       setBudgets([]);
       setDebts([]);
-      setWallets([]);
     }
   }, [user, refreshData]);
-
-  // ... existing code for addCategory, updateCategory, deleteCategory ...
 
   const addCategory = useCallback(
     async (categoryData: Omit<Category, "id" | "userId" | "createdAt">) => {
@@ -185,20 +166,6 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       const data = await res.json();
       if (data.success) {
         setTransactions((prev) => [data.transaction, ...prev]);
-        // <CHANGE> Update wallet balance after transaction
-        if (transactionData.walletId) {
-          const amount =
-            transactionData.type === "income"
-              ? transactionData.amount
-              : -transactionData.amount;
-          setWallets((prev) =>
-            prev.map((w) =>
-              w.id === transactionData.walletId
-                ? { ...w, balance: w.balance + amount }
-                : w
-            )
-          );
-        }
       }
     },
     [user, getHeaders]
@@ -240,6 +207,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       const data = await res.json();
       if (data.success) {
         setBudgets((prev) => {
+          // Replace if exists for same period
           const filtered = prev.filter(
             (b) =>
               !(
@@ -342,67 +310,6 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     [getHeaders]
   );
 
-  // <CHANGE> Added wallet CRUD functions
-  const addWallet = useCallback(
-    async (walletData: Omit<Wallet, "id" | "userId" | "createdAt">) => {
-      if (!user) return;
-      const res = await fetch("/api/wallets", {
-        method: "POST",
-        headers: getHeaders(),
-        body: JSON.stringify(walletData),
-      });
-      const data = await res.json();
-      if (data.success) {
-        if (walletData.isDefault) {
-          setWallets((prev) => [
-            ...prev.map((w) => ({ ...w, isDefault: false })),
-            data.wallet,
-          ]);
-        } else {
-          setWallets((prev) => [...prev, data.wallet]);
-        }
-      }
-    },
-    [user, getHeaders]
-  );
-
-  const updateWallet = useCallback(
-    async (id: string, walletData: Partial<Wallet>) => {
-      await fetch(`/api/wallets/${id}`, {
-        method: "PUT",
-        headers: getHeaders(),
-        body: JSON.stringify(walletData),
-      });
-      if (walletData.isDefault) {
-        setWallets((prev) =>
-          prev.map((w) =>
-            w.id === id ? { ...w, ...walletData } : { ...w, isDefault: false }
-          )
-        );
-      } else {
-        setWallets((prev) =>
-          prev.map((w) => (w.id === id ? { ...w, ...walletData } : w))
-        );
-      }
-    },
-    [getHeaders]
-  );
-
-  const deleteWallet = useCallback(
-    async (id: string) => {
-      await fetch(`/api/wallets/${id}`, {
-        method: "DELETE",
-        headers: getHeaders(),
-      });
-      setWallets((prev) => prev.filter((w) => w.id !== id));
-    },
-    [getHeaders]
-  );
-
-  const getDefaultWallet = useCallback(() => {
-    return wallets.find((w) => w.isDefault) || wallets[0];
-  }, [wallets]);
-
   const getDebtStats = useCallback(() => {
     const unpaidDebts = debts.filter((d) => !d.isPaid);
     const totalReceivable = unpaidDebts
@@ -459,7 +366,6 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         transactions,
         budgets,
         debts,
-        wallets,
         isLoading,
         refreshData,
         addCategory,
@@ -475,13 +381,9 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         updateDebt,
         deleteDebt,
         markDebtAsPaid,
-        addWallet,
-        updateWallet,
-        deleteWallet,
         getDebtStats,
         getMonthlyStats,
         getBudgetStatus,
-        getDefaultWallet,
       }}
     >
       {children}
