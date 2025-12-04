@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const http_1 = require("http");
 const next_1 = __importDefault(require("next"));
-const port = parseInt(process.env.PORT || "3000", 10);
+const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 0; // JANGAN pakai 3000
 const app = (0, next_1.default)({ dev: false });
 const handle = app.getRequestHandler();
 app.prepare().then(() => {

@@ -1,7 +1,7 @@
 import { createServer } from "http";
 import next from "next";
 
-const port = parseInt(process.env.PORT || "3000", 10);
+const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 0; // JANGAN pakai 3000
 const app = next({ dev: false });
 const handle = app.getRequestHandler();
 
