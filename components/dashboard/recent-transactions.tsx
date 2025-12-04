@@ -3,12 +3,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useFinance } from "@/contexts/finance-context"
+import { usePrivacy } from "@/contexts/privacy-context"
 import { formatCurrency, formatDate } from "@/lib/format"
 import { ArrowUpRight, ArrowDownRight, ArrowRight } from "lucide-react"
 import Link from "next/link"
 
 export function RecentTransactions() {
   const { transactions, categories } = useFinance()
+  const { maskAmount } = usePrivacy()
 
   const recentTransactions = [...transactions]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -72,7 +74,7 @@ export function RecentTransactions() {
                   className={`font-semibold ${transaction.type === "income" ? "text-success" : "text-destructive"}`}
                 >
                   {transaction.type === "income" ? "+" : "-"}
-                  {formatCurrency(transaction.amount)}
+                  {maskAmount(formatCurrency(transaction.amount))}
                 </span>
               </div>
             ))}

@@ -2,11 +2,13 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useFinance } from "@/contexts/finance-context"
+import { usePrivacy } from "@/contexts/privacy-context"
 import { formatCurrency, getCurrentMonth, getCurrentYear, getMonthName } from "@/lib/format"
 import { TrendingUp, TrendingDown, Wallet, PiggyBank } from "lucide-react"
 
 export function StatsCards() {
   const { getMonthlyStats, getBudgetStatus } = useFinance()
+  const { maskAmount } = usePrivacy()
   const month = getCurrentMonth()
   const year = getCurrentYear()
 
@@ -16,7 +18,7 @@ export function StatsCards() {
   const cards = [
     {
       title: "Total Pemasukan",
-      value: formatCurrency(stats.income),
+      value: maskAmount(formatCurrency(stats.income)),
       subtitle: `${getMonthName(month)} ${year}`,
       icon: TrendingUp,
       color: "text-success",
@@ -24,7 +26,7 @@ export function StatsCards() {
     },
     {
       title: "Total Pengeluaran",
-      value: formatCurrency(stats.expense),
+      value: maskAmount(formatCurrency(stats.expense)),
       subtitle: `${getMonthName(month)} ${year}`,
       icon: TrendingDown,
       color: "text-destructive",
@@ -32,7 +34,7 @@ export function StatsCards() {
     },
     {
       title: "Saldo",
-      value: formatCurrency(stats.balance),
+      value: maskAmount(formatCurrency(stats.balance)),
       subtitle: stats.balance >= 0 ? "Positif" : "Negatif",
       icon: Wallet,
       color: stats.balance >= 0 ? "text-primary" : "text-destructive",
@@ -40,7 +42,7 @@ export function StatsCards() {
     },
     {
       title: "Sisa Anggaran",
-      value: budgetStatus.budget > 0 ? formatCurrency(budgetStatus.remaining) : "Belum diatur",
+      value: budgetStatus.budget > 0 ? maskAmount(formatCurrency(budgetStatus.remaining)) : "Belum diatur",
       subtitle: budgetStatus.budget > 0 ? `${budgetStatus.percentage.toFixed(0)}% terpakai` : "Atur anggaran bulanan",
       icon: PiggyBank,
       color: budgetStatus.remaining >= 0 ? "text-primary" : "text-destructive",

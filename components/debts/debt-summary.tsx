@@ -2,11 +2,13 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useFinance } from "@/contexts/finance-context"
+import { usePrivacy } from "@/contexts/privacy-context"
 import { formatCurrency } from "@/lib/format"
 import { ArrowDownLeft, ArrowUpRight, Scale } from "lucide-react"
 
 export function DebtSummary() {
   const { getDebtStats } = useFinance()
+  const { maskAmount } = usePrivacy()
   const stats = getDebtStats()
 
   return (
@@ -17,7 +19,7 @@ export function DebtSummary() {
           <ArrowDownLeft className="h-4 w-4 text-green-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-green-600">{formatCurrency(stats.totalReceivable)}</div>
+          <div className="text-2xl font-bold text-green-600">{maskAmount(formatCurrency(stats.totalReceivable))}</div>
           <p className="text-xs text-muted-foreground">Uang yang akan diterima</p>
         </CardContent>
       </Card>
@@ -28,7 +30,7 @@ export function DebtSummary() {
           <ArrowUpRight className="h-4 w-4 text-red-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-red-600">{formatCurrency(stats.totalPayable)}</div>
+          <div className="text-2xl font-bold text-red-600">{maskAmount(formatCurrency(stats.totalPayable))}</div>
           <p className="text-xs text-muted-foreground">Uang yang harus dibayar</p>
         </CardContent>
       </Card>
@@ -41,7 +43,7 @@ export function DebtSummary() {
         <CardContent>
           <div className={`text-2xl font-bold ${stats.balance >= 0 ? "text-green-600" : "text-red-600"}`}>
             {stats.balance >= 0 ? "+" : ""}
-            {formatCurrency(stats.balance)}
+            {maskAmount(formatCurrency(stats.balance))}
           </div>
           <p className="text-xs text-muted-foreground">
             {stats.balance >= 0 ? "Lebih banyak piutang" : "Lebih banyak utang"}

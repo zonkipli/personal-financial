@@ -17,6 +17,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useFinance } from "@/contexts/finance-context"
+import { usePrivacy } from "@/contexts/privacy-context"
 import { TransactionForm } from "./transaction-form"
 import { formatCurrency, formatDate, getCurrentMonth, getCurrentYear, getMonthName } from "@/lib/format"
 import { Search, Filter, MoreVertical, Edit, Trash2, ArrowUpRight, ArrowDownRight } from "lucide-react"
@@ -24,6 +25,7 @@ import type { Transaction } from "@/types"
 
 export function TransactionList() {
   const { transactions, categories, deleteTransaction } = useFinance()
+  const { maskAmount } = usePrivacy()
   const [searchQuery, setSearchQuery] = useState("")
   const [typeFilter, setTypeFilter] = useState<"all" | "income" | "expense">("all")
   const [categoryFilter, setCategoryFilter] = useState<string>("all")
@@ -184,7 +186,7 @@ export function TransactionList() {
                       }`}
                     >
                       {transaction.type === "income" ? "+" : "-"}
-                      {formatCurrency(transaction.amount)}
+                      {maskAmount(formatCurrency(transaction.amount))}
                     </span>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>

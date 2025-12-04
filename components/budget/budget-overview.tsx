@@ -19,6 +19,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useFinance } from "@/contexts/finance-context"
+import { usePrivacy } from "@/contexts/privacy-context"
 import { BudgetForm } from "./budget-form"
 import { formatCurrency, getCurrentMonth, getCurrentYear, getMonthName } from "@/lib/format"
 import { PiggyBank, MoreVertical, Edit, Trash2, AlertTriangle, CheckCircle, TrendingDown } from "lucide-react"
@@ -26,6 +27,7 @@ import type { Budget } from "@/types"
 
 export function BudgetOverview() {
   const { budgets, transactions, categories, getMonthlyStats, deleteBudget } = useFinance()
+  const { maskAmount } = usePrivacy()
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth().toString())
   const [selectedYear, setSelectedYear] = useState(getCurrentYear().toString())
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null)
@@ -179,8 +181,8 @@ export function BudgetOverview() {
                     </p>
                     <p className="text-sm text-muted-foreground">
                       {isOverBudget
-                        ? `Pengeluaran Anda melebihi anggaran sebesar ${formatCurrency(Math.abs(remaining))}`
-                        : `Sisa anggaran: ${formatCurrency(remaining)}`}
+                        ? `Pengeluaran Anda melebihi anggaran sebesar ${maskAmount(formatCurrency(Math.abs(remaining)))}`
+                        : `Sisa anggaran: ${maskAmount(formatCurrency(remaining))}`}
                     </p>
                   </div>
                 </div>
@@ -190,11 +192,11 @@ export function BudgetOverview() {
                   <div className="flex items-end justify-between">
                     <div>
                       <p className="text-sm text-muted-foreground">Terpakai</p>
-                      <p className="text-2xl font-bold">{formatCurrency(totalSpent)}</p>
+                      <p className="text-2xl font-bold">{maskAmount(formatCurrency(totalSpent))}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-sm text-muted-foreground">Anggaran</p>
-                      <p className="text-2xl font-bold">{formatCurrency(budgetAmount)}</p>
+                      <p className="text-2xl font-bold">{maskAmount(formatCurrency(budgetAmount))}</p>
                     </div>
                   </div>
                   <div className="space-y-1">
@@ -210,7 +212,7 @@ export function BudgetOverview() {
                     />
                     <div className="flex justify-between text-sm text-muted-foreground">
                       <span>{percentage.toFixed(1)}% terpakai</span>
-                      <span>Sisa: {formatCurrency(Math.max(remaining, 0))}</span>
+                      <span>Sisa: {maskAmount(formatCurrency(Math.max(remaining, 0)))}</span>
                     </div>
                   </div>
                 </div>
@@ -238,7 +240,7 @@ export function BudgetOverview() {
                         <span className="font-medium">{category.name}</span>
                       </div>
                       <div className="text-right">
-                        <span className="font-semibold">{formatCurrency(category.amount)}</span>
+                        <span className="font-semibold">{maskAmount(formatCurrency(category.amount))}</span>
                         <span className="text-sm text-muted-foreground ml-2">({category.percentage.toFixed(1)}%)</span>
                       </div>
                     </div>

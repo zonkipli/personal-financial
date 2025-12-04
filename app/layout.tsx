@@ -5,6 +5,7 @@ import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 import { AuthProvider } from "@/contexts/auth-context"
 import { FinanceProvider } from "@/contexts/finance-context"
+import { PrivacyProvider } from "@/contexts/privacy-context"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -40,7 +41,9 @@ export default function RootLayout({
     <html lang="id">
       <body className={`${inter.className} antialiased`}>
         <AuthProvider>
-          <FinanceProvider>{children}</FinanceProvider>
+          <FinanceProvider>
+            <PrivacyProvider>{children}</PrivacyProvider>
+          </FinanceProvider>
         </AuthProvider>
         <Analytics />
       </body>

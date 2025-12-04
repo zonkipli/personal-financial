@@ -14,6 +14,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { useFinance } from "@/contexts/finance-context"
+import { usePrivacy } from "@/contexts/privacy-context"
 import { DebtForm } from "./debt-form"
 import { formatCurrency, formatDate } from "@/lib/format"
 import type { Debt } from "@/types"
@@ -26,6 +27,7 @@ interface DebtListProps {
 
 export function DebtList({ filter, showPaid }: DebtListProps) {
   const { debts, deleteDebt, markDebtAsPaid } = useFinance()
+  const { maskAmount } = usePrivacy()
 
   const filteredDebts = debts
     .filter((debt) => {
@@ -34,7 +36,6 @@ export function DebtList({ filter, showPaid }: DebtListProps) {
       return true
     })
     .sort((a, b) => {
-      // Unpaid first, then by due date
       if (a.isPaid !== b.isPaid) return a.isPaid ? 1 : -1
       if (a.dueDate && b.dueDate) return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
       if (a.dueDate) return -1
@@ -106,7 +107,7 @@ export function DebtList({ filter, showPaid }: DebtListProps) {
               <div className="text-right shrink-0">
                 <p className={`text-lg font-bold ${debt.type === "receivable" ? "text-green-600" : "text-red-600"}`}>
                   {debt.type === "receivable" ? "+" : "-"}
-                  {formatCurrency(debt.amount)}
+                  {maskAmount(formatCurrency(debt.amount))}
                 </p>
                 <div className="flex items-center gap-1 mt-2">
                   {!debt.isPaid && (
@@ -121,8 +122,8 @@ export function DebtList({ filter, showPaid }: DebtListProps) {
                           <AlertDialogTitle>Tandai Lunas?</AlertDialogTitle>
                           <AlertDialogDescription>
                             {debt.type === "receivable"
-                              ? `${debt.personName} sudah membayar ${formatCurrency(debt.amount)}?`
-                              : `Anda sudah membayar ${formatCurrency(debt.amount)} ke ${debt.personName}?`}
+                              ? `${debt.personName} sudah membayar ${maskAmount(formatCurrency(debt.amount))}?`
+                              : `Anda sudah membayar ${maskAmount(formatCurrency(debt.amount))} ke ${debt.personName}?`}
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -153,7 +154,7 @@ export function DebtList({ filter, showPaid }: DebtListProps) {
                         <AlertDialogTitle>Hapus Data?</AlertDialogTitle>
                         <AlertDialogDescription>
                           Data {debt.type === "receivable" ? "piutang" : "utang"} dari {debt.personName} sebesar{" "}
-                          {formatCurrency(debt.amount)} akan dihapus permanen.
+                          {maskAmount(formatCurrency(debt.amount))} akan dihapus permanen.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>

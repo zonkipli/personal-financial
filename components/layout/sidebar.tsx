@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/contexts/auth-context"
+import { usePrivacy } from "@/contexts/privacy-context"
 import {
   LayoutDashboard,
   ArrowLeftRight,
@@ -17,6 +18,8 @@ import {
   X,
   ChevronLeft,
   HandCoins,
+  Eye,
+  EyeOff,
 } from "lucide-react"
 
 const navigation = [
@@ -31,6 +34,7 @@ const navigation = [
 export function Sidebar() {
   const pathname = usePathname()
   const { user, logout } = useAuth()
+  const { isAmountHidden, toggleAmountVisibility } = usePrivacy()
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
 
@@ -44,6 +48,16 @@ export function Sidebar() {
         onClick={() => setIsMobileOpen(!isMobileOpen)}
       >
         {isMobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+      </Button>
+
+      {/* Privacy toggle button for mobile */}
+      <Button
+        variant="outline"
+        size="icon"
+        className="fixed right-4 top-4 z-50 md:hidden bg-transparent"
+        onClick={toggleAmountVisibility}
+      >
+        {isAmountHidden ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
       </Button>
 
       {/* Mobile overlay */}
@@ -63,7 +77,7 @@ export function Sidebar() {
         )}
       >
         {/* Logo */}
-        <div className={cn("flex h-16 items-center border-b px-4", isCollapsed && "justify-center")}>
+        <div className={cn("flex h-16 items-center justify-between border-b px-4", isCollapsed && "justify-center")}>
           <Link href="/dashboard" className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -77,6 +91,18 @@ export function Sidebar() {
             </div>
             {!isCollapsed && <span className="font-semibold">FinanceApp</span>}
           </Link>
+          {/* Privacy toggle button in header for desktop */}
+          {!isCollapsed && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              onClick={toggleAmountVisibility}
+              title={isAmountHidden ? "Tampilkan nilai" : "Sembunyikan nilai"}
+            >
+              {isAmountHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </Button>
+          )}
         </div>
 
         {/* Navigation */}
@@ -102,6 +128,21 @@ export function Sidebar() {
             )
           })}
         </nav>
+
+        {/* Privacy toggle for collapsed sidebar */}
+        {isCollapsed && (
+          <div className="border-t p-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="w-full"
+              onClick={toggleAmountVisibility}
+              title={isAmountHidden ? "Tampilkan nilai" : "Sembunyikan nilai"}
+            >
+              {isAmountHidden ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+            </Button>
+          </div>
+        )}
 
         {/* User section */}
         <div className="border-t p-2">
