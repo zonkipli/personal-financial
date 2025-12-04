@@ -65,15 +65,15 @@ export function CategoryPieChart({ month, year, type }: CategoryPieChartProps) {
       const percentage =
         total > 0 ? ((data.value / total) * 100).toFixed(1) : 0;
       return (
-        <div className="rounded-lg border bg-background p-3 shadow-lg">
-          <div className="flex items-center gap-2 mb-1">
+        <div className="rounded-lg border bg-background p-2 sm:p-3 shadow-lg text-xs sm:text-sm">
+          <div className="flex items-center gap-1 sm:gap-2 mb-1">
             <div
-              className="h-3 w-3 rounded-full"
+              className="h-2 w-2 sm:h-3 sm:w-3 rounded-full"
               style={{ backgroundColor: data.color }}
             />
             <span className="font-medium">{data.name}</span>
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground">
             {maskAmount(formatCurrency(data.value))} ({percentage}%)
           </p>
         </div>
@@ -84,11 +84,14 @@ export function CategoryPieChart({ month, year, type }: CategoryPieChartProps) {
 
   const CustomLegend = ({ payload }: any) => {
     return (
-      <div className="flex flex-wrap justify-center gap-4 mt-4">
+      <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mt-2 sm:mt-4">
         {payload?.map((entry: any, index: number) => (
-          <div key={index} className="flex items-center gap-2 text-sm">
+          <div
+            key={index}
+            className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm"
+          >
             <div
-              className="h-3 w-3 rounded-full shrink-0"
+              className="h-2 w-2 sm:h-3 sm:w-3 rounded-full shrink-0"
               style={{ backgroundColor: entry.color }}
             />
             <span className="text-muted-foreground">{entry.value}</span>
@@ -100,32 +103,35 @@ export function CategoryPieChart({ month, year, type }: CategoryPieChartProps) {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <PieChartIcon className="h-5 w-5" />
+      <CardHeader className="pb-2 sm:pb-4">
+        <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+          <PieChartIcon className="h-4 w-4 sm:h-5 sm:w-5" />
           {type === "income" ? "Komposisi Pemasukan" : "Komposisi Pengeluaran"}
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-2 sm:px-6">
         {categoryData.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="rounded-full bg-muted p-4 mb-4">
-              <PieChartIcon className="h-8 w-8 text-muted-foreground" />
+          <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-center">
+            <div className="rounded-full bg-muted p-3 sm:p-4 mb-3 sm:mb-4">
+              <PieChartIcon className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
             </div>
-            <p className="text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Tidak ada data {type === "income" ? "pemasukan" : "pengeluaran"}
             </p>
           </div>
         ) : (
-          <ChartContainer config={chartConfig} className="h-[300px] w-full">
+          <ChartContainer
+            config={chartConfig}
+            className="h-[220px] sm:h-[300px] w-full"
+          >
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={categoryData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
+                  innerRadius={40}
+                  outerRadius={70}
                   paddingAngle={2}
                   dataKey="value"
                 >
@@ -142,28 +148,30 @@ export function CategoryPieChart({ month, year, type }: CategoryPieChartProps) {
 
         {/* Category breakdown list */}
         {categoryData.length > 0 && (
-          <div className="mt-6 space-y-3">
-            <p className="text-sm font-medium text-muted-foreground">Detail</p>
+          <div className="mt-4 sm:mt-6 space-y-2 sm:space-y-3">
+            <p className="text-xs font-medium text-muted-foreground">Detail</p>
             {categoryData.map((item) => {
               const percentage =
                 total > 0 ? ((item.value / total) * 100).toFixed(1) : 0;
               return (
                 <div
                   key={item.name}
-                  className="flex items-center justify-between"
+                  className="flex items-center justify-between gap-2"
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
                     <div
-                      className="h-3 w-3 rounded-full"
+                      className="h-2 w-2 sm:h-3 sm:w-3 rounded-full shrink-0"
                       style={{ backgroundColor: item.color }}
                     />
-                    <span className="text-sm">{item.name}</span>
+                    <span className="text-xs sm:text-sm truncate">
+                      {item.name}
+                    </span>
                   </div>
-                  <div className="text-right">
-                    <span className="font-medium">
+                  <div className="text-right shrink-0">
+                    <span className="font-medium text-xs sm:text-sm">
                       {maskAmount(formatCurrency(item.value))}
                     </span>
-                    <span className="text-sm text-muted-foreground ml-2">
+                    <span className="text-xs text-muted-foreground ml-1 sm:ml-2">
                       ({percentage}%)
                     </span>
                   </div>

@@ -1,34 +1,39 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { useFinance } from "@/contexts/finance-context"
-import { exportToCSV, exportToExcel } from "@/lib/export"
-import { getMonthName } from "@/lib/format"
-import { Download, FileSpreadsheet, FileText } from "lucide-react"
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useFinance } from "@/contexts/finance-context";
+import { exportToCSV, exportToExcel } from "@/lib/export";
+import { getMonthName } from "@/lib/format";
+import { Download, FileSpreadsheet, FileText } from "lucide-react";
 
 interface ExportButtonProps {
-  month: number
-  year: number
+  month: number;
+  year: number;
 }
 
 export function ExportButton({ month, year }: ExportButtonProps) {
-  const { transactions, categories } = useFinance()
+  const { transactions, categories } = useFinance();
 
   const filteredTransactions = transactions.filter((t) => {
-    const date = new Date(t.date)
-    return date.getMonth() + 1 === month && date.getFullYear() === year
-  })
+    const date = new Date(t.date);
+    return date.getMonth() + 1 === month && date.getFullYear() === year;
+  });
 
-  const filename = `transaksi-${getMonthName(month).toLowerCase()}-${year}`
+  const filename = `transaksi-${getMonthName(month).toLowerCase()}-${year}`;
 
   const handleExportCSV = () => {
-    exportToCSV(filteredTransactions, categories, filename)
-  }
+    exportToCSV(filteredTransactions, categories, filename);
+  };
 
   const handleExportExcel = () => {
-    exportToExcel(filteredTransactions, categories, filename)
-  }
+    exportToExcel(filteredTransactions, categories, filename);
+  };
 
   return (
     <DropdownMenu>
@@ -49,5 +54,5 @@ export function ExportButton({ month, year }: ExportButtonProps) {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }
