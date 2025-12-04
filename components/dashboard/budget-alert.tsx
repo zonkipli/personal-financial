@@ -3,11 +3,13 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
 import { useFinance } from "@/contexts/finance-context"
+import { usePrivacy } from "@/contexts/privacy-context"
 import { formatCurrency, getCurrentMonth, getCurrentYear, getMonthName } from "@/lib/format"
 import { AlertTriangle, CheckCircle } from "lucide-react"
 
 export function BudgetAlert() {
   const { getBudgetStatus } = useFinance()
+  const { maskAmount } = usePrivacy()
   const month = getCurrentMonth()
   const year = getCurrentYear()
 
@@ -37,12 +39,12 @@ export function BudgetAlert() {
           </AlertTitle>
           <AlertDescription>
             {isOverBudget
-              ? `Pengeluaran Anda melebihi anggaran sebesar ${formatCurrency(Math.abs(remaining))}`
-              : `Sisa anggaran ${getMonthName(month)}: ${formatCurrency(remaining)} dari ${formatCurrency(budget)}`}
+              ? `Pengeluaran Anda melebihi anggaran sebesar ${maskAmount(formatCurrency(Math.abs(remaining)))}`
+              : `Sisa anggaran ${getMonthName(month)}: ${maskAmount(formatCurrency(remaining))} dari ${maskAmount(formatCurrency(budget))}`}
           </AlertDescription>
           <div className="space-y-1">
             <div className="flex justify-between text-sm">
-              <span>Terpakai: {formatCurrency(spent)}</span>
+              <span>Terpakai: {maskAmount(formatCurrency(spent))}</span>
               <span>{Math.min(percentage, 100).toFixed(0)}%</span>
             </div>
             <Progress

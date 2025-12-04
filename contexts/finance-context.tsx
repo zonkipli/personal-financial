@@ -2,17 +2,6 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react"
 import type { Category, Transaction, Budget, Debt } from "@/types"
-import {
-  getStoredCategories,
-  setStoredCategories,
-  getStoredTransactions,
-  setStoredTransactions,
-  getStoredBudgets,
-  setStoredBudgets,
-  getStoredDebts,
-  setStoredDebts,
-  generateId,
-} from "@/lib/storage"
 import { useAuth } from "./auth-context"
 
 interface FinanceContextType {
@@ -20,19 +9,21 @@ interface FinanceContextType {
   transactions: Transaction[]
   budgets: Budget[]
   debts: Debt[]
-  addCategory: (category: Omit<Category, "id" | "userId" | "createdAt">) => void
-  updateCategory: (id: string, category: Partial<Category>) => void
-  deleteCategory: (id: string) => void
-  addTransaction: (transaction: Omit<Transaction, "id" | "userId" | "createdAt">) => void
-  updateTransaction: (id: string, transaction: Partial<Transaction>) => void
-  deleteTransaction: (id: string) => void
-  addBudget: (budget: Omit<Budget, "id" | "userId" | "createdAt">) => void
-  updateBudget: (id: string, budget: Partial<Budget>) => void
-  deleteBudget: (id: string) => void
-  addDebt: (debt: Omit<Debt, "id" | "userId" | "createdAt">) => void
-  updateDebt: (id: string, debt: Partial<Debt>) => void
-  deleteDebt: (id: string) => void
-  markDebtAsPaid: (id: string) => void
+  isLoading: boolean
+  refreshData: () => Promise<void>
+  addCategory: (category: Omit<Category, "id" | "userId" | "createdAt">) => Promise<void>
+  updateCategory: (id: string, category: Partial<Category>) => Promise<void>
+  deleteCategory: (id: string) => Promise<void>
+  addTransaction: (transaction: Omit<Transaction, "id" | "userId" | "createdAt">) => Promise<void>
+  updateTransaction: (id: string, transaction: Partial<Transaction>) => Promise<void>
+  deleteTransaction: (id: string) => Promise<void>
+  addBudget: (budget: Omit<Budget, "id" | "userId" | "createdAt">) => Promise<void>
+  updateBudget: (id: string, budget: Partial<Budget>) => Promise<void>
+  deleteBudget: (id: string) => Promise<void>
+  addDebt: (debt: Omit<Debt, "id" | "userId" | "createdAt">) => Promise<void>
+  updateDebt: (id: string, debt: Partial<Debt>) => Promise<void>
+  deleteDebt: (id: string) => Promise<void>
+  markDebtAsPaid: (id: string) => Promise<void>
   getDebtStats: () => { totalReceivable: number; totalPayable: number; balance: number }
   getMonthlyStats: (month: number, year: number) => { income: number; expense: number; balance: number }
   getBudgetStatus: (
@@ -49,179 +40,233 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [budgets, setBudgets] = useState<Budget[]>([])
   const [debts, setDebts] = useState<Debt[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+
+  const getHeaders = useCallback(() => {
+    return {
+      "Content-Type": "application/json",
+      "x-user-id": user?.id || "",
+    }
+  }, [user])
+
+  const refreshData = useCallback(async () => {
+    if (!user) return
+    setIsLoading(true)
+    try {
+      const [catRes, txnRes, budgetRes, debtRes] = await Promise.all([
+        fetch("/api/categories", { headers: getHeaders() }),
+        fetch("/api/transactions", { headers: getHeaders() }),
+        fetch("/api/budgets", { headers: getHeaders() }),
+        fetch("/api/debts", { headers: getHeaders() }),
+      ])
+
+      const [catData, txnData, budgetData, debtData] = await Promise.all([
+        catRes.json(),
+        txnRes.json(),
+        budgetRes.json(),
+        debtRes.json(),
+      ])
+
+      if (catData.success) setCategories(catData.categories)
+      if (txnData.success) setTransactions(txnData.transactions)
+      if (budgetData.success) setBudgets(budgetData.budgets)
+      if (debtData.success) setDebts(debtData.debts)
+    } catch (error) {
+      console.error("Error fetching data:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [user, getHeaders])
 
   useEffect(() => {
     if (user) {
-      const storedCategories = getStoredCategories().filter((c) => c.userId === user.id)
-      const storedTransactions = getStoredTransactions().filter((t) => t.userId === user.id)
-      const storedBudgets = getStoredBudgets().filter((b) => b.userId === user.id)
-      const storedDebts = getStoredDebts().filter((d) => d.userId === user.id)
-      setCategories(storedCategories)
-      setTransactions(storedTransactions)
-      setBudgets(storedBudgets)
-      setDebts(storedDebts)
+      refreshData()
     } else {
       setCategories([])
       setTransactions([])
       setBudgets([])
       setDebts([])
     }
-  }, [user])
+  }, [user, refreshData])
 
-  // ... existing code for category functions ...
-
-  // Category functions
   const addCategory = useCallback(
-    (categoryData: Omit<Category, "id" | "userId" | "createdAt">) => {
+    async (categoryData: Omit<Category, "id" | "userId" | "createdAt">) => {
       if (!user) return
-      const newCategory: Category = {
-        ...categoryData,
-        id: generateId("cat"),
-        userId: user.id,
-        createdAt: new Date().toISOString(),
+      const res = await fetch("/api/categories", {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify(categoryData),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setCategories((prev) => [...prev, data.category])
       }
-      const updatedCategories = [...getStoredCategories(), newCategory]
-      setStoredCategories(updatedCategories)
-      setCategories(updatedCategories.filter((c) => c.userId === user.id))
     },
-    [user],
+    [user, getHeaders],
   )
 
   const updateCategory = useCallback(
-    (id: string, categoryData: Partial<Category>) => {
-      const allCategories = getStoredCategories()
-      const updatedCategories = allCategories.map((c) => (c.id === id ? { ...c, ...categoryData } : c))
-      setStoredCategories(updatedCategories)
-      setCategories(updatedCategories.filter((c) => c.userId === user?.id))
+    async (id: string, categoryData: Partial<Category>) => {
+      await fetch(`/api/categories/${id}`, {
+        method: "PUT",
+        headers: getHeaders(),
+        body: JSON.stringify(categoryData),
+      })
+      setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, ...categoryData } : c)))
     },
-    [user],
+    [getHeaders],
   )
 
   const deleteCategory = useCallback(
-    (id: string) => {
-      const allCategories = getStoredCategories()
-      const updatedCategories = allCategories.filter((c) => c.id !== id)
-      setStoredCategories(updatedCategories)
-      setCategories(updatedCategories.filter((c) => c.userId === user?.id))
+    async (id: string) => {
+      await fetch(`/api/categories/${id}`, {
+        method: "DELETE",
+        headers: getHeaders(),
+      })
+      setCategories((prev) => prev.filter((c) => c.id !== id))
     },
-    [user],
+    [getHeaders],
   )
 
-  // Transaction functions
   const addTransaction = useCallback(
-    (transactionData: Omit<Transaction, "id" | "userId" | "createdAt">) => {
+    async (transactionData: Omit<Transaction, "id" | "userId" | "createdAt">) => {
       if (!user) return
-      const newTransaction: Transaction = {
-        ...transactionData,
-        id: generateId("txn"),
-        userId: user.id,
-        createdAt: new Date().toISOString(),
+      const res = await fetch("/api/transactions", {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify(transactionData),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setTransactions((prev) => [data.transaction, ...prev])
       }
-      const updatedTransactions = [...getStoredTransactions(), newTransaction]
-      setStoredTransactions(updatedTransactions)
-      setTransactions(updatedTransactions.filter((t) => t.userId === user.id))
     },
-    [user],
+    [user, getHeaders],
   )
 
   const updateTransaction = useCallback(
-    (id: string, transactionData: Partial<Transaction>) => {
-      const allTransactions = getStoredTransactions()
-      const updatedTransactions = allTransactions.map((t) => (t.id === id ? { ...t, ...transactionData } : t))
-      setStoredTransactions(updatedTransactions)
-      setTransactions(updatedTransactions.filter((t) => t.userId === user?.id))
+    async (id: string, transactionData: Partial<Transaction>) => {
+      await fetch(`/api/transactions/${id}`, {
+        method: "PUT",
+        headers: getHeaders(),
+        body: JSON.stringify(transactionData),
+      })
+      setTransactions((prev) => prev.map((t) => (t.id === id ? { ...t, ...transactionData } : t)))
     },
-    [user],
+    [getHeaders],
   )
 
   const deleteTransaction = useCallback(
-    (id: string) => {
-      const allTransactions = getStoredTransactions()
-      const updatedTransactions = allTransactions.filter((t) => t.id !== id)
-      setStoredTransactions(updatedTransactions)
-      setTransactions(updatedTransactions.filter((t) => t.userId === user?.id))
+    async (id: string) => {
+      await fetch(`/api/transactions/${id}`, {
+        method: "DELETE",
+        headers: getHeaders(),
+      })
+      setTransactions((prev) => prev.filter((t) => t.id !== id))
     },
-    [user],
+    [getHeaders],
   )
 
-  // Budget functions
   const addBudget = useCallback(
-    (budgetData: Omit<Budget, "id" | "userId" | "createdAt">) => {
+    async (budgetData: Omit<Budget, "id" | "userId" | "createdAt">) => {
       if (!user) return
-      const newBudget: Budget = {
-        ...budgetData,
-        id: generateId("budget"),
-        userId: user.id,
-        createdAt: new Date().toISOString(),
+      const res = await fetch("/api/budgets", {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify(budgetData),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setBudgets((prev) => {
+          // Replace if exists for same period
+          const filtered = prev.filter(
+            (b) =>
+              !(
+                b.categoryId === data.budget.categoryId &&
+                b.month === data.budget.month &&
+                b.year === data.budget.year
+              ),
+          )
+          return [...filtered, data.budget]
+        })
       }
-      const updatedBudgets = [...getStoredBudgets(), newBudget]
-      setStoredBudgets(updatedBudgets)
-      setBudgets(updatedBudgets.filter((b) => b.userId === user.id))
     },
-    [user],
+    [user, getHeaders],
   )
 
   const updateBudget = useCallback(
-    (id: string, budgetData: Partial<Budget>) => {
-      const allBudgets = getStoredBudgets()
-      const updatedBudgets = allBudgets.map((b) => (b.id === id ? { ...b, ...budgetData } : b))
-      setStoredBudgets(updatedBudgets)
-      setBudgets(updatedBudgets.filter((b) => b.userId === user?.id))
+    async (id: string, budgetData: Partial<Budget>) => {
+      await fetch(`/api/budgets/${id}`, {
+        method: "PUT",
+        headers: getHeaders(),
+        body: JSON.stringify(budgetData),
+      })
+      setBudgets((prev) => prev.map((b) => (b.id === id ? { ...b, ...budgetData } : b)))
     },
-    [user],
+    [getHeaders],
   )
 
   const deleteBudget = useCallback(
-    (id: string) => {
-      const allBudgets = getStoredBudgets()
-      const updatedBudgets = allBudgets.filter((b) => b.id !== id)
-      setStoredBudgets(updatedBudgets)
-      setBudgets(updatedBudgets.filter((b) => b.userId === user?.id))
+    async (id: string) => {
+      await fetch(`/api/budgets/${id}`, {
+        method: "DELETE",
+        headers: getHeaders(),
+      })
+      setBudgets((prev) => prev.filter((b) => b.id !== id))
     },
-    [user],
+    [getHeaders],
   )
 
   const addDebt = useCallback(
-    (debtData: Omit<Debt, "id" | "userId" | "createdAt">) => {
+    async (debtData: Omit<Debt, "id" | "userId" | "createdAt">) => {
       if (!user) return
-      const newDebt: Debt = {
-        ...debtData,
-        id: generateId("debt"),
-        userId: user.id,
-        createdAt: new Date().toISOString(),
+      const res = await fetch("/api/debts", {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify(debtData),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setDebts((prev) => [data.debt, ...prev])
       }
-      const updatedDebts = [...getStoredDebts(), newDebt]
-      setStoredDebts(updatedDebts)
-      setDebts(updatedDebts.filter((d) => d.userId === user.id))
     },
-    [user],
+    [user, getHeaders],
   )
 
   const updateDebt = useCallback(
-    (id: string, debtData: Partial<Debt>) => {
-      const allDebts = getStoredDebts()
-      const updatedDebts = allDebts.map((d) => (d.id === id ? { ...d, ...debtData } : d))
-      setStoredDebts(updatedDebts)
-      setDebts(updatedDebts.filter((d) => d.userId === user?.id))
+    async (id: string, debtData: Partial<Debt>) => {
+      await fetch(`/api/debts/${id}`, {
+        method: "PUT",
+        headers: getHeaders(),
+        body: JSON.stringify(debtData),
+      })
+      setDebts((prev) => prev.map((d) => (d.id === id ? { ...d, ...debtData } : d)))
     },
-    [user],
+    [getHeaders],
   )
 
   const deleteDebt = useCallback(
-    (id: string) => {
-      const allDebts = getStoredDebts()
-      const updatedDebts = allDebts.filter((d) => d.id !== id)
-      setStoredDebts(updatedDebts)
-      setDebts(updatedDebts.filter((d) => d.userId === user?.id))
+    async (id: string) => {
+      await fetch(`/api/debts/${id}`, {
+        method: "DELETE",
+        headers: getHeaders(),
+      })
+      setDebts((prev) => prev.filter((d) => d.id !== id))
     },
-    [user],
+    [getHeaders],
   )
 
   const markDebtAsPaid = useCallback(
-    (id: string) => {
-      updateDebt(id, { isPaid: true, paidDate: new Date().toISOString() })
+    async (id: string) => {
+      await fetch(`/api/debts/${id}/pay`, {
+        method: "POST",
+        headers: getHeaders(),
+      })
+      setDebts((prev) =>
+        prev.map((d) => (d.id === id ? { ...d, isPaid: true, paidDate: new Date().toISOString().split("T")[0] } : d)),
+      )
     },
-    [updateDebt],
+    [getHeaders],
   )
 
   const getDebtStats = useCallback(() => {
@@ -235,7 +280,6 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     }
   }, [debts])
 
-  // Stats functions
   const getMonthlyStats = useCallback(
     (month: number, year: number) => {
       const monthlyTransactions = transactions.filter((t) => {
@@ -271,6 +315,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         transactions,
         budgets,
         debts,
+        isLoading,
+        refreshData,
         addCategory,
         updateCategory,
         deleteCategory,

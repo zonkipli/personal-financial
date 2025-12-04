@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useFinance } from "@/contexts/finance-context"
+import { usePrivacy } from "@/contexts/privacy-context"
 import { formatCurrency } from "@/lib/format"
 import { ChartContainer } from "@/components/ui/chart"
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts"
@@ -15,6 +16,7 @@ interface CategoryPieChartProps {
 
 export function CategoryPieChart({ month, year, type }: CategoryPieChartProps) {
   const { transactions, categories } = useFinance()
+  const { maskAmount } = usePrivacy()
 
   const monthlyTransactions = transactions.filter((t) => {
     const date = new Date(t.date)
@@ -60,7 +62,7 @@ export function CategoryPieChart({ month, year, type }: CategoryPieChartProps) {
             <span className="font-medium">{data.name}</span>
           </div>
           <p className="text-sm text-muted-foreground">
-            {formatCurrency(data.value)} ({percentage}%)
+            {maskAmount(formatCurrency(data.value))} ({percentage}%)
           </p>
         </div>
       )
@@ -134,7 +136,7 @@ export function CategoryPieChart({ month, year, type }: CategoryPieChartProps) {
                     <span className="text-sm">{item.name}</span>
                   </div>
                   <div className="text-right">
-                    <span className="font-medium">{formatCurrency(item.value)}</span>
+                    <span className="font-medium">{maskAmount(formatCurrency(item.value))}</span>
                     <span className="text-sm text-muted-foreground ml-2">({percentage}%)</span>
                   </div>
                 </div>

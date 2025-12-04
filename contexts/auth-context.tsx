@@ -2,7 +2,6 @@
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 import type { User } from "@/types"
-import { getStoredUser, setStoredUser, generateId, initializeDefaultCategories } from "@/lib/storage"
 
 interface AuthContextType {
   user: User | null
@@ -13,6 +12,23 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+const USER_STORAGE_KEY = "finance_app_user"
+
+function getStoredUser(): User | null {
+  if (typeof window === "undefined") return null
+  const stored = localStorage.getItem(USER_STORAGE_KEY)
+  return stored ? JSON.parse(stored) : null
+}
+
+function setStoredUser(user: User | null) {
+  if (typeof window === "undefined") return
+  if (user) {
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user))
+  } else {
+    localStorage.removeItem(USER_STORAGE_KEY)
+  }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -25,36 +41,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      })
 
-    // For demo purposes, accept any email/password with basic validation
-    if (!email || !password) {
-      return { success: false, error: "Email dan password harus diisi" }
-    }
+      const data = await response.json()
 
-    if (password.length < 6) {
-      return { success: false, error: "Password minimal 6 karakter" }
-    }
+      if (!data.success) {
+        return { success: false, error: data.error }
+      }
 
-    const storedUser = getStoredUser()
-    if (storedUser && storedUser.email === email) {
-      setUser(storedUser)
+      setStoredUser(data.user)
+      setUser(data.user)
       return { success: true }
+    } catch (error) {
+      console.error("Login error:", error)
+      return { success: false, error: "Terjadi kesalahan koneksi" }
     }
-
-    // Create new user if not exists
-    const newUser: User = {
-      id: generateId("user"),
-      email,
-      name: email.split("@")[0],
-      createdAt: new Date().toISOString(),
-    }
-
-    setStoredUser(newUser)
-    initializeDefaultCategories(newUser.id)
-    setUser(newUser)
-    return { success: true }
   }
 
   const register = async (
@@ -62,27 +68,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     password: string,
     name: string,
   ): Promise<{ success: boolean; error?: string }> => {
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, name }),
+      })
 
-    if (!email || !password || !name) {
-      return { success: false, error: "Semua field harus diisi" }
+      const data = await response.json()
+
+      if (!data.success) {
+        return { success: false, error: data.error }
+      }
+
+      setStoredUser(data.user)
+      setUser(data.user)
+      return { success: true }
+    } catch (error) {
+      console.error("Register error:", error)
+      return { success: false, error: "Terjadi kesalahan koneksi" }
     }
-
-    if (password.length < 6) {
-      return { success: false, error: "Password minimal 6 karakter" }
-    }
-
-    const newUser: User = {
-      id: generateId("user"),
-      email,
-      name,
-      createdAt: new Date().toISOString(),
-    }
-
-    setStoredUser(newUser)
-    initializeDefaultCategories(newUser.id)
-    setUser(newUser)
-    return { success: true }
   }
 
   const logout = () => {

@@ -2,12 +2,14 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useFinance } from "@/contexts/finance-context"
+import { usePrivacy } from "@/contexts/privacy-context"
 import { formatCurrency, formatDate } from "@/lib/format"
 import { HandCoins, Wallet, Users, AlertTriangle, CheckCircle, Clock } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 
 export function DebtSummaryReport() {
   const { debts } = useFinance()
+  const { maskAmount } = usePrivacy()
 
   // Calculate statistics
   const activeDebts = debts.filter((d) => !d.isPaid)
@@ -73,7 +75,7 @@ export function DebtSummaryReport() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{formatCurrency(totalReceivable)}</div>
+            <div className="text-2xl font-bold text-green-600">{maskAmount(formatCurrency(totalReceivable))}</div>
             <p className="text-xs text-muted-foreground mt-1">
               {activeDebts.filter((d) => d.type === "receivable").length} orang
             </p>
@@ -88,7 +90,7 @@ export function DebtSummaryReport() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{formatCurrency(totalPayable)}</div>
+            <div className="text-2xl font-bold text-red-600">{maskAmount(formatCurrency(totalPayable))}</div>
             <p className="text-xs text-muted-foreground mt-1">
               {activeDebts.filter((d) => d.type === "payable").length} orang
             </p>
@@ -104,7 +106,7 @@ export function DebtSummaryReport() {
           </CardHeader>
           <CardContent>
             <div className={`text-2xl font-bold ${balance >= 0 ? "text-primary" : "text-destructive"}`}>
-              {formatCurrency(balance)}
+              {maskAmount(formatCurrency(balance))}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               {balance >= 0 ? "Lebih banyak piutang" : "Lebih banyak utang"}
@@ -155,7 +157,7 @@ export function DebtSummaryReport() {
                     </div>
                     <div className="text-right">
                       <p className={`font-semibold ${debt.type === "receivable" ? "text-green-600" : "text-red-600"}`}>
-                        {formatCurrency(debt.amount)}
+                        {maskAmount(formatCurrency(debt.amount))}
                       </p>
                       <Badge variant={debt.type === "receivable" ? "default" : "secondary"} className="text-xs">
                         {debt.type === "receivable" ? "Piutang" : "Utang"}
@@ -190,7 +192,7 @@ export function DebtSummaryReport() {
                     </div>
                     <div className="text-right">
                       <p className={`font-semibold ${debt.type === "receivable" ? "text-green-600" : "text-red-600"}`}>
-                        {formatCurrency(debt.amount)}
+                        {maskAmount(formatCurrency(debt.amount))}
                       </p>
                       <Badge variant={debt.type === "receivable" ? "default" : "secondary"} className="text-xs">
                         {debt.type === "receivable" ? "Piutang" : "Utang"}
@@ -224,7 +226,7 @@ export function DebtSummaryReport() {
                     <div className="flex-1">
                       <p className="font-medium">{name}</p>
                     </div>
-                    <p className="font-semibold text-green-600">{formatCurrency(amount)}</p>
+                    <p className="font-semibold text-green-600">{maskAmount(formatCurrency(amount))}</p>
                   </div>
                 ))}
               </div>
@@ -250,7 +252,7 @@ export function DebtSummaryReport() {
                     <div className="flex-1">
                       <p className="font-medium">{name}</p>
                     </div>
-                    <p className="font-semibold text-red-600">{formatCurrency(amount)}</p>
+                    <p className="font-semibold text-red-600">{maskAmount(formatCurrency(amount))}</p>
                   </div>
                 ))}
               </div>

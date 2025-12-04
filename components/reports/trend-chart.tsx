@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useFinance } from "@/contexts/finance-context"
+import { usePrivacy } from "@/contexts/privacy-context"
 import { formatCurrency, getMonthName } from "@/lib/format"
 import { ChartContainer } from "@/components/ui/chart"
 import {
@@ -25,6 +26,7 @@ interface TrendChartProps {
 
 export function TrendChart({ year }: TrendChartProps) {
   const { transactions } = useFinance()
+  const { maskAmount, isVisible } = usePrivacy()
 
   // Calculate monthly data for the year
   const monthlyData = Array.from({ length: 12 }, (_, i) => {
@@ -71,13 +73,18 @@ export function TrendChart({ year }: TrendChartProps) {
             <div key={index} className="flex items-center gap-2 text-sm">
               <div className="h-2 w-2 rounded-full" style={{ backgroundColor: entry.color }} />
               <span className="text-muted-foreground">{entry.name}:</span>
-              <span className="font-medium">{formatCurrency(entry.value)}</span>
+              <span className="font-medium">{maskAmount(formatCurrency(entry.value))}</span>
             </div>
           ))}
         </div>
       )
     }
     return null
+  }
+
+  const yAxisFormatter = (value: number) => {
+    if (!isVisible) return "***"
+    return `${(value / 1000000).toFixed(0)}jt`
   }
 
   return (
@@ -101,7 +108,7 @@ export function TrendChart({ year }: TrendChartProps) {
                 <BarChart data={monthlyData} margin={{ top: 20, right: 20, left: 20, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                  <YAxis tickFormatter={(value) => `${(value / 1000000).toFixed(0)}jt`} tick={{ fontSize: 12 }} />
+                  <YAxis tickFormatter={yAxisFormatter} tick={{ fontSize: 12 }} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend />
                   <Bar dataKey="income" name="Pemasukan" fill="#10b981" radius={[4, 4, 0, 0]} />
@@ -117,7 +124,7 @@ export function TrendChart({ year }: TrendChartProps) {
                 <LineChart data={monthlyData} margin={{ top: 20, right: 20, left: 20, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                  <YAxis tickFormatter={(value) => `${(value / 1000000).toFixed(0)}jt`} tick={{ fontSize: 12 }} />
+                  <YAxis tickFormatter={yAxisFormatter} tick={{ fontSize: 12 }} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend />
                   <Line

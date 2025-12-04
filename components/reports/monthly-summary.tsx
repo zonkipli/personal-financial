@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useFinance } from "@/contexts/finance-context"
+import { usePrivacy } from "@/contexts/privacy-context"
 import { formatCurrency, getMonthName } from "@/lib/format"
 import { TrendingUp, TrendingDown, Wallet, ArrowUpRight, ArrowDownRight } from "lucide-react"
 
@@ -12,6 +13,7 @@ interface MonthlySummaryProps {
 
 export function MonthlySummary({ month, year }: MonthlySummaryProps) {
   const { getMonthlyStats, transactions, categories } = useFinance()
+  const { maskAmount } = usePrivacy()
   const { income, expense, balance } = getMonthlyStats(month, year)
 
   // Get previous month stats for comparison
@@ -56,7 +58,7 @@ export function MonthlySummary({ month, year }: MonthlySummaryProps) {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-success">{formatCurrency(income)}</div>
+          <div className="text-2xl font-bold text-success">{maskAmount(formatCurrency(income))}</div>
           <div className="flex items-center gap-1 text-xs mt-1">
             {incomeChange >= 0 ? (
               <ArrowUpRight className="h-3 w-3 text-success" />
@@ -75,7 +77,7 @@ export function MonthlySummary({ month, year }: MonthlySummaryProps) {
               {topIncome.map((t) => (
                 <div key={t.id} className="flex items-center justify-between text-sm">
                   <span className="truncate">{t.description || getCategoryName(t.categoryId)}</span>
-                  <span className="font-medium shrink-0">{formatCurrency(t.amount)}</span>
+                  <span className="font-medium shrink-0">{maskAmount(formatCurrency(t.amount))}</span>
                 </div>
               ))}
             </div>
@@ -92,7 +94,7 @@ export function MonthlySummary({ month, year }: MonthlySummaryProps) {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-destructive">{formatCurrency(expense)}</div>
+          <div className="text-2xl font-bold text-destructive">{maskAmount(formatCurrency(expense))}</div>
           <div className="flex items-center gap-1 text-xs mt-1">
             {expenseChange <= 0 ? (
               <ArrowDownRight className="h-3 w-3 text-success" />
@@ -111,7 +113,7 @@ export function MonthlySummary({ month, year }: MonthlySummaryProps) {
               {topExpense.map((t) => (
                 <div key={t.id} className="flex items-center justify-between text-sm">
                   <span className="truncate">{t.description || getCategoryName(t.categoryId)}</span>
-                  <span className="font-medium shrink-0">{formatCurrency(t.amount)}</span>
+                  <span className="font-medium shrink-0">{maskAmount(formatCurrency(t.amount))}</span>
                 </div>
               ))}
             </div>
@@ -129,7 +131,7 @@ export function MonthlySummary({ month, year }: MonthlySummaryProps) {
         </CardHeader>
         <CardContent>
           <div className={`text-2xl font-bold ${balance >= 0 ? "text-primary" : "text-destructive"}`}>
-            {formatCurrency(balance)}
+            {maskAmount(formatCurrency(balance))}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
             {balance >= 0 ? "Surplus" : "Defisit"} keuangan bulan {getMonthName(month)}
@@ -142,7 +144,9 @@ export function MonthlySummary({ month, year }: MonthlySummaryProps) {
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Rata-rata/Hari</span>
-              <span className="font-medium">{formatCurrency(expense / new Date(year, month, 0).getDate())}</span>
+              <span className="font-medium">
+                {maskAmount(formatCurrency(expense / new Date(year, month, 0).getDate()))}
+              </span>
             </div>
           </div>
         </CardContent>
