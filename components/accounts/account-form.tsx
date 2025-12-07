@@ -100,9 +100,7 @@ export function AccountForm({ account, onSuccess }: AccountFormProps) {
         <Label htmlFor="type">Tipe Akun</Label>
         <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
           <SelectTrigger className="w-full">
-            <SelectValue placeholder="Pilih tipe akun">
-              {ACCOUNT_TYPES.find(t => t.value === formData.type)?.label}
-            </SelectValue>
+            <SelectValue placeholder="Pilih tipe akun" />
           </SelectTrigger>
           <SelectContent>
             {ACCOUNT_TYPES.map((type) => (
