@@ -20,7 +20,7 @@ interface FinancialInsightsProps {
 }
 
 export function FinancialInsights({ month, year }: FinancialInsightsProps) {
-  const { transactions, budgets, categories, getMonthlyStats } = useFinance();
+  const { transactions, budgets, categories, getMonthlyStats, savingsGoals, recurringTransactions } = useFinance();
 
   const currentStats = getMonthlyStats(month, year);
   const prevMonth = month === 1 ? 12 : month - 1;
@@ -155,6 +155,70 @@ export function FinancialInsights({ month, year }: FinancialInsightsProps) {
         description: `Untuk sisa ${daysLeft} hari, usahakan pengeluaran harian maksimal ${formatCurrency(recommendedDaily)} agar tidak melebihi budget.`,
       });
     }
+  }
+
+  const activeSavings = savingsGoals.filter((g) => g.status === "active");
+  const nearDeadlineSavings = activeSavings.filter((g) => {
+    if (!g.deadline) return false;
+    const daysUntilDeadline = Math.ceil(
+      (new Date(g.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+    );
+    return daysUntilDeadline > 0 && daysUntilDeadline <= 30;
+  });
+
+  if (nearDeadlineSavings.length > 0) {
+    const savings = nearDeadlineSavings[0];
+    const daysLeft = Math.ceil(
+      (new Date(savings.deadline!).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+    );
+    const remaining = savings.targetAmount - savings.currentAmount;
+    insights.push({
+      type: "warning",
+      icon: Target,
+      title: "Target Tabungan Mendekat",
+      description: `Target "${savings.name}" deadline dalam ${daysLeft} hari. Sisa ${formatCurrency(remaining)} lagi untuk mencapai target.`,
+    });
+  }
+
+  const completedThisMonth = savingsGoals.filter((g) => {
+    if (g.status !== "completed" || !g.updatedAt) return false;
+    const date = new Date(g.updatedAt);
+    return date.getMonth() + 1 === month && date.getFullYear() === year;
+  });
+
+  if (completedThisMonth.length > 0) {
+    insights.push({
+      type: "success",
+      icon: CheckCircle2,
+      title: "Target Tabungan Tercapai",
+      description: `Selamat! Anda telah mencapai ${completedThisMonth.length} target tabungan bulan ini.`,
+    });
+  }
+
+  const activeRecurring = recurringTransactions.filter((r) => r.isActive);
+  const recurringIncome = activeRecurring
+    .filter((r) => r.type === "income")
+    .reduce((sum, r) => sum + r.amount, 0);
+  const recurringExpense = activeRecurring
+    .filter((r) => r.type === "expense")
+    .reduce((sum, r) => sum + r.amount, 0);
+
+  if (recurringExpense > currentStats.income * 0.5) {
+    insights.push({
+      type: "warning",
+      icon: AlertTriangle,
+      title: "Pengeluaran Rutin Tinggi",
+      description: `Transaksi berulang Anda sebesar ${formatCurrency(recurringExpense)} mencapai lebih dari 50% pemasukan. Pertimbangkan untuk meninjau kembali.`,
+    });
+  }
+
+  if (recurringIncome > 0 && recurringIncome < recurringExpense) {
+    insights.push({
+      type: "info",
+      icon: TrendingDown,
+      title: "Arus Kas Berulang Negatif",
+      description: `Pengeluaran rutin (${formatCurrency(recurringExpense)}) lebih besar dari pemasukan rutin (${formatCurrency(recurringIncome)}).`,
+    });
   }
 
   if (insights.length === 0) {
