@@ -20,6 +20,8 @@ import {
   HandCoins,
   Eye,
   EyeOff,
+  Target,
+  Repeat,
 } from "lucide-react";
 
 const navigation = [
@@ -28,6 +30,8 @@ const navigation = [
   { name: "Kategori", href: "/dashboard/categories", icon: Tags },
   { name: "Anggaran", href: "/dashboard/budget", icon: PiggyBank },
   { name: "Utang Piutang", href: "/dashboard/debts", icon: HandCoins },
+  { name: "Target Tabungan", href: "/dashboard/savings", icon: Target },
+  { name: "Transaksi Berulang", href: "/dashboard/recurring", icon: Repeat },
   { name: "Laporan", href: "/dashboard/reports", icon: BarChart3 },
 ];
 

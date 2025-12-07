@@ -51,6 +51,33 @@ export interface Debt {
   createdAt: string
 }
 
+export interface SavingsGoal {
+  id: string
+  userId: string
+  name: string
+  targetAmount: number
+  currentAmount: number
+  deadline: string | null
+  description: string
+  isCompleted: boolean
+  createdAt: string
+}
+
+export interface RecurringTransaction {
+  id: string
+  userId: string
+  categoryId: string
+  type: "income" | "expense"
+  amount: number
+  description: string
+  frequency: "daily" | "weekly" | "monthly" | "yearly"
+  startDate: string
+  endDate: string | null
+  isActive: boolean
+  lastProcessed: string | null
+  createdAt: string
+}
+
 export interface MonthlyReport {
   month: number
   year: number

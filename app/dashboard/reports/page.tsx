@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrendChart } from "@/components/reports/trend-chart";
 import { CategoryPieChart } from "@/components/reports/category-pie-chart";
 import { MonthlySummary } from "@/components/reports/monthly-summary";
+import { FinancialInsights } from "@/components/reports/financial-insights";
 import { ExportButton } from "@/components/reports/export-button";
 import { DebtSummaryReport } from "@/components/reports/debt-summary-report";
 import { DebtExportButton } from "@/components/reports/debt-export-button";
@@ -109,6 +110,9 @@ export default function ReportsPage() {
         >
           {/* Monthly Summary */}
           <MonthlySummary month={month} year={year} />
+
+          {/* Financial Insights */}
+          <FinancialInsights month={month} year={year} />
 
           {/* Trend Chart */}
           <TrendChart year={year} />

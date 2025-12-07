@@ -8,7 +8,7 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
-import type { Category, Transaction, Budget, Debt } from "@/types";
+import type { Category, Transaction, Budget, Debt, SavingsGoal, RecurringTransaction } from "@/types";
 import { useAuth } from "./auth-context";
 
 interface FinanceContextType {
@@ -16,6 +16,8 @@ interface FinanceContextType {
   transactions: Transaction[];
   budgets: Budget[];
   debts: Debt[];
+  savingsGoals: SavingsGoal[];
+  recurringTransactions: RecurringTransaction[];
   isLoading: boolean;
   refreshData: () => Promise<void>;
   addCategory: (
@@ -40,6 +42,12 @@ interface FinanceContextType {
   updateDebt: (id: string, debt: Partial<Debt>) => Promise<void>;
   deleteDebt: (id: string) => Promise<void>;
   markDebtAsPaid: (id: string) => Promise<void>;
+  addSavingsGoal: (goal: Omit<SavingsGoal, "id" | "userId" | "createdAt">) => Promise<void>;
+  updateSavingsGoal: (id: string, goal: Partial<SavingsGoal>) => Promise<void>;
+  deleteSavingsGoal: (id: string) => Promise<void>;
+  addRecurringTransaction: (recurring: Omit<RecurringTransaction, "id" | "userId" | "createdAt">) => Promise<void>;
+  updateRecurringTransaction: (id: string, recurring: Partial<RecurringTransaction>) => Promise<void>;
+  deleteRecurringTransaction: (id: string) => Promise<void>;
   getDebtStats: () => {
     totalReceivable: number;
     totalPayable: number;
@@ -63,6 +71,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [debts, setDebts] = useState<Debt[]>([]);
+  const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>([]);
+  const [recurringTransactions, setRecurringTransactions] = useState<RecurringTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const getHeaders = useCallback(() => {
@@ -76,24 +86,30 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     setIsLoading(true);
     try {
-      const [catRes, txnRes, budgetRes, debtRes] = await Promise.all([
+      const [catRes, txnRes, budgetRes, debtRes, savingsRes, recurringRes] = await Promise.all([
         fetch("/api/categories", { headers: getHeaders() }),
         fetch("/api/transactions", { headers: getHeaders() }),
         fetch("/api/budgets", { headers: getHeaders() }),
         fetch("/api/debts", { headers: getHeaders() }),
+        fetch("/api/savings-goals", { headers: getHeaders() }),
+        fetch("/api/recurring-transactions", { headers: getHeaders() }),
       ]);
 
-      const [catData, txnData, budgetData, debtData] = await Promise.all([
+      const [catData, txnData, budgetData, debtData, savingsData, recurringData] = await Promise.all([
         catRes.json(),
         txnRes.json(),
         budgetRes.json(),
         debtRes.json(),
+        savingsRes.json(),
+        recurringRes.json(),
       ]);
 
       if (catData.success) setCategories(catData.categories);
       if (txnData.success) setTransactions(txnData.transactions);
       if (budgetData.success) setBudgets(budgetData.budgets);
       if (debtData.success) setDebts(debtData.debts);
+      if (Array.isArray(savingsData)) setSavingsGoals(savingsData);
+      if (Array.isArray(recurringData)) setRecurringTransactions(recurringData);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -109,6 +125,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       setTransactions([]);
       setBudgets([]);
       setDebts([]);
+      setSavingsGoals([]);
+      setRecurringTransactions([]);
     }
   }, [user, refreshData]);
 
@@ -359,6 +377,88 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     [budgets, getMonthlyStats]
   );
 
+  const addSavingsGoal = useCallback(
+    async (goalData: Omit<SavingsGoal, "id" | "userId" | "createdAt">) => {
+      if (!user) return;
+      const res = await fetch("/api/savings-goals", {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify(goalData),
+      });
+      const data = await res.json();
+      if (data.id) {
+        setSavingsGoals((prev) => [data, ...prev]);
+      }
+    },
+    [user, getHeaders]
+  );
+
+  const updateSavingsGoal = useCallback(
+    async (id: string, goalData: Partial<SavingsGoal>) => {
+      await fetch(`/api/savings-goals/${id}`, {
+        method: "PUT",
+        headers: getHeaders(),
+        body: JSON.stringify(goalData),
+      });
+      setSavingsGoals((prev) =>
+        prev.map((g) => (g.id === id ? { ...g, ...goalData } : g))
+      );
+    },
+    [getHeaders]
+  );
+
+  const deleteSavingsGoal = useCallback(
+    async (id: string) => {
+      await fetch(`/api/savings-goals/${id}`, {
+        method: "DELETE",
+        headers: getHeaders(),
+      });
+      setSavingsGoals((prev) => prev.filter((g) => g.id !== id));
+    },
+    [getHeaders]
+  );
+
+  const addRecurringTransaction = useCallback(
+    async (recurringData: Omit<RecurringTransaction, "id" | "userId" | "createdAt">) => {
+      if (!user) return;
+      const res = await fetch("/api/recurring-transactions", {
+        method: "POST",
+        headers: getHeaders(),
+        body: JSON.stringify(recurringData),
+      });
+      const data = await res.json();
+      if (data.id) {
+        setRecurringTransactions((prev) => [data, ...prev]);
+      }
+    },
+    [user, getHeaders]
+  );
+
+  const updateRecurringTransaction = useCallback(
+    async (id: string, recurringData: Partial<RecurringTransaction>) => {
+      await fetch(`/api/recurring-transactions/${id}`, {
+        method: "PUT",
+        headers: getHeaders(),
+        body: JSON.stringify(recurringData),
+      });
+      setRecurringTransactions((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, ...recurringData } : r))
+      );
+    },
+    [getHeaders]
+  );
+
+  const deleteRecurringTransaction = useCallback(
+    async (id: string) => {
+      await fetch(`/api/recurring-transactions/${id}`, {
+        method: "DELETE",
+        headers: getHeaders(),
+      });
+      setRecurringTransactions((prev) => prev.filter((r) => r.id !== id));
+    },
+    [getHeaders]
+  );
+
   return (
     <FinanceContext.Provider
       value={{
@@ -366,6 +466,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         transactions,
         budgets,
         debts,
+        savingsGoals,
+        recurringTransactions,
         isLoading,
         refreshData,
         addCategory,
@@ -381,6 +483,12 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         updateDebt,
         deleteDebt,
         markDebtAsPaid,
+        addSavingsGoal,
+        updateSavingsGoal,
+        deleteSavingsGoal,
+        addRecurringTransaction,
+        updateRecurringTransaction,
+        deleteRecurringTransaction,
         getDebtStats,
         getMonthlyStats,
         getBudgetStatus,
