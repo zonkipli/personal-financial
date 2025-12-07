@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { StatsCards } from "@/components/dashboard/stats-cards"
 import { RecentTransactions } from "@/components/dashboard/recent-transactions"
 import { BudgetAlert } from "@/components/dashboard/budget-alert"
+import { NetWorthCard } from "@/components/dashboard/net-worth-card"
 import { TransactionForm } from "@/components/transactions/transaction-form"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useFinance } from "@/contexts/finance-context"
@@ -60,6 +61,9 @@ export default function DashboardPage() {
 
       {/* Stats Cards */}
       <StatsCards />
+
+      {/* Net Worth */}
+      <NetWorthCard />
 
       {/* Additional Feature Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

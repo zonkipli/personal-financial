@@ -22,16 +22,24 @@ import {
   EyeOff,
   Target,
   Repeat,
+  Wallet,
+  TrendingUp,
+  Users,
+  Bell,
 } from "lucide-react";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Akun & Dompet", href: "/dashboard/accounts", icon: Wallet },
   { name: "Transaksi", href: "/dashboard/transactions", icon: ArrowLeftRight },
   { name: "Kategori", href: "/dashboard/categories", icon: Tags },
   { name: "Anggaran", href: "/dashboard/budget", icon: PiggyBank },
+  { name: "Investasi", href: "/dashboard/investments", icon: TrendingUp },
   { name: "Utang Piutang", href: "/dashboard/debts", icon: HandCoins },
   { name: "Target Tabungan", href: "/dashboard/savings", icon: Target },
+  { name: "Patungan", href: "/dashboard/split-bills", icon: Users },
   { name: "Transaksi Berulang", href: "/dashboard/recurring", icon: Repeat },
+  { name: "Reminder", href: "/dashboard/reminders", icon: Bell },
   { name: "Laporan", href: "/dashboard/reports", icon: BarChart3 },
 ];
 

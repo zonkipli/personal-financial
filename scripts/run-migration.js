@@ -17,7 +17,7 @@ async function runMigration() {
     connection = await mysql.createConnection(config);
     console.log('Connected successfully!');
 
-    const migrationFile = path.join(__dirname, '003-add-savings-and-recurring.sql');
+    const migrationFile = path.join(__dirname, '004-add-accounts-and-multi-features.sql');
     console.log(`Reading migration file: ${migrationFile}`);
 
     const sql = fs.readFileSync(migrationFile, 'utf8');
