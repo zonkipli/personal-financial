@@ -44,12 +44,12 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Mobile menu button */}
       {/* Mobile Header */}
-      <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between bg-card border-b px-4 h-14 md:hidden">
+      <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between bg-card border-b px-3 h-16 md:hidden shadow-sm">
         <Button
           variant="ghost"
           size="icon"
+          className="h-10 w-10 shrink-0"
           onClick={() => setIsMobileOpen(!isMobileOpen)}
         >
           {isMobileOpen ? (
@@ -59,9 +59,31 @@ export function Sidebar() {
           )}
         </Button>
 
-        <span className="font-semibold text-base">FinanceApp</span>
+        <div className="flex items-center gap-2 flex-1 justify-center">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </div>
+          <span className="font-semibold text-lg">FinanceApp</span>
+        </div>
 
-        <Button variant="ghost" size="icon" onClick={toggleAmountVisibility}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-10 w-10 shrink-0"
+          onClick={toggleAmountVisibility}
+        >
           {isAmountHidden ? (
             <EyeOff className="h-5 w-5" />
           ) : (
@@ -81,7 +103,7 @@ export function Sidebar() {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed left-0 top-0 z-40 flex h-screen flex-col border-r bg-card transition-all duration-300",
+          "fixed left-0 top-0 z-50 flex h-screen flex-col border-r bg-card transition-all duration-300",
           isCollapsed ? "w-16" : "w-64",
           isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         )}
