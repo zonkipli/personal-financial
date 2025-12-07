@@ -13,42 +13,60 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const {
-      categoryId,
-      type,
-      amount,
-      description,
-      frequency,
-      startDate,
-      endDate,
-      isActive,
-    } = body;
 
-    // Validate required fields
-    if (!categoryId || !type || amount === undefined || !frequency || !startDate) {
+    // Build dynamic update query based on provided fields
+    const updates: string[] = [];
+    const values: any[] = [];
+
+    if (body.categoryId !== undefined) {
+      updates.push("category_id = ?");
+      values.push(body.categoryId);
+    }
+    if (body.type !== undefined) {
+      updates.push("type = ?");
+      values.push(body.type);
+    }
+    if (body.amount !== undefined) {
+      updates.push("amount = ?");
+      values.push(body.amount);
+    }
+    if (body.description !== undefined) {
+      updates.push("description = ?");
+      values.push(body.description || "");
+    }
+    if (body.frequency !== undefined) {
+      updates.push("frequency = ?");
+      values.push(body.frequency);
+    }
+    if (body.startDate !== undefined) {
+      updates.push("start_date = ?");
+      values.push(body.startDate);
+    }
+    if (body.endDate !== undefined) {
+      updates.push("end_date = ?");
+      values.push(body.endDate || null);
+    }
+    if (body.isActive !== undefined) {
+      updates.push("is_active = ?");
+      values.push(body.isActive);
+    }
+
+    if (updates.length === 0) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "No fields to update" },
         { status: 400 }
       );
     }
 
+    // Add WHERE clause values
+    values.push(id);
+    values.push(userId);
+
     await query(
       `UPDATE recurring_transactions
-       SET category_id = ?, type = ?, amount = ?, description = ?, frequency = ?,
-           start_date = ?, end_date = ?, is_active = ?
+       SET ${updates.join(", ")}
        WHERE id = ? AND user_id = ?`,
-      [
-        categoryId,
-        type,
-        amount,
-        description || "",
-        frequency,
-        startDate,
-        endDate || null,
-        isActive !== undefined ? isActive : true,
-        id,
-        userId,
-      ]
+      values
     );
 
     return NextResponse.json({ success: true });
