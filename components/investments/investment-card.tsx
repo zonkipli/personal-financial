@@ -1,10 +1,13 @@
 "use client"
 
+import { useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { TrendingUp, TrendingDown, MoreVertical, Edit, Trash } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { InvestmentUpdateDialog } from "./investment-update-dialog"
 import type { Investment } from "@/types"
 
 interface InvestmentCardProps {
@@ -13,6 +16,7 @@ interface InvestmentCardProps {
 }
 
 export function InvestmentCard({ investment, onUpdate }: InvestmentCardProps) {
+  const [isEditOpen, setIsEditOpen] = useState(false)
   const gainLoss = (Number(investment.currentPrice) - Number(investment.buyPrice)) * Number(investment.quantity)
   const gainLossPercentage = ((Number(investment.currentPrice) - Number(investment.buyPrice)) / Number(investment.buyPrice)) * 100
   const currentValue = Number(investment.currentPrice) * Number(investment.quantity)
@@ -31,35 +35,36 @@ export function InvestmentCard({ investment, onUpdate }: InvestmentCardProps) {
   }
 
   return (
-    <Card className="p-6 hover:shadow-lg transition-shadow">
-      <div className="flex justify-between items-start mb-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="font-semibold text-lg">{investment.name}</h3>
-            {investment.symbol && (
-              <Badge variant="outline">{investment.symbol}</Badge>
-            )}
+    <>
+      <Card className="p-6 hover:shadow-lg transition-shadow">
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="font-semibold text-lg">{investment.name}</h3>
+              {investment.symbol && (
+                <Badge variant="outline">{investment.symbol}</Badge>
+              )}
+            </div>
+            <Badge>{investment.type}</Badge>
           </div>
-          <Badge>{investment.type}</Badge>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setIsEditOpen(true)}>
+                <Edit className="h-4 w-4 mr-2" />
+                Update Harga
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleDelete} className="text-destructive">
+                <Trash className="h-4 w-4 mr-2" />
+                Hapus
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm">
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem>
-              <Edit className="h-4 w-4 mr-2" />
-              Update Harga
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleDelete} className="text-destructive">
-              <Trash className="h-4 w-4 mr-2" />
-              Hapus
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
 
       <div className="space-y-3">
         <div className="flex justify-between items-center">
@@ -100,7 +105,23 @@ export function InvestmentCard({ investment, onUpdate }: InvestmentCardProps) {
             <p className="font-medium">{Number(investment.quantity)}</p>
           </div>
         </div>
-      </div>
-    </Card>
+        </div>
+      </Card>
+
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update {investment.name}</DialogTitle>
+          </DialogHeader>
+          <InvestmentUpdateDialog
+            investment={investment}
+            onSuccess={() => {
+              setIsEditOpen(false)
+              onUpdate()
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
