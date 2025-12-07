@@ -3,7 +3,7 @@ import { query } from "@/lib/db";
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const userId = request.headers.get("x-user-id");
@@ -11,6 +11,7 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id } = await params;
     const body = await request.json();
     const {
       categoryId,
@@ -37,7 +38,7 @@ export async function PUT(
         startDate,
         endDate || null,
         isActive,
-        params.id,
+        id,
         userId,
       ]
     );
@@ -54,7 +55,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const userId = request.headers.get("x-user-id");
@@ -62,9 +63,11 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id } = await params;
+
     await query(
       "DELETE FROM recurring_transactions WHERE id = ? AND user_id = ?",
-      [params.id, userId]
+      [id, userId]
     );
 
     return NextResponse.json({ success: true });
