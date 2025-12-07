@@ -2,6 +2,7 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
+import { Toaster } from "sonner"
 import "./globals.css"
 import { AuthProvider } from "@/contexts/auth-context"
 import { FinanceProvider } from "@/contexts/finance-context"
@@ -45,6 +46,7 @@ export default function RootLayout({
             <PrivacyProvider>{children}</PrivacyProvider>
           </FinanceProvider>
         </AuthProvider>
+        <Toaster position="top-right" richColors />
         <Analytics />
       </body>
     </html>

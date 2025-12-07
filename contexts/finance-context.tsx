@@ -10,6 +10,7 @@ import {
 } from "react";
 import type { Category, Transaction, Budget, Debt, SavingsGoal, RecurringTransaction } from "@/types";
 import { useAuth } from "./auth-context";
+import { toast } from "sonner";
 
 interface FinanceContextType {
   categories: Category[];
@@ -112,6 +113,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       if (Array.isArray(recurringData)) setRecurringTransactions(recurringData);
     } catch (error) {
       console.error("Error fetching data:", error);
+      toast.error("Gagal memuat data. Silakan coba lagi.");
     } finally {
       setIsLoading(false);
     }
@@ -133,14 +135,22 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const addCategory = useCallback(
     async (categoryData: Omit<Category, "id" | "userId" | "createdAt">) => {
       if (!user) return;
-      const res = await fetch("/api/categories", {
-        method: "POST",
-        headers: getHeaders(),
-        body: JSON.stringify(categoryData),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setCategories((prev) => [...prev, data.category]);
+      try {
+        const res = await fetch("/api/categories", {
+          method: "POST",
+          headers: getHeaders(),
+          body: JSON.stringify(categoryData),
+        });
+        const data = await res.json();
+        if (data.success) {
+          setCategories((prev) => [...prev, data.category]);
+          toast.success("Kategori berhasil ditambahkan");
+        } else {
+          toast.error(data.error || "Gagal menambahkan kategori");
+        }
+      } catch (error) {
+        console.error("Error adding category:", error);
+        toast.error("Gagal menambahkan kategori. Silakan coba lagi.");
       }
     },
     [user, getHeaders]
@@ -148,25 +158,47 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
   const updateCategory = useCallback(
     async (id: string, categoryData: Partial<Category>) => {
-      await fetch(`/api/categories/${id}`, {
-        method: "PUT",
-        headers: getHeaders(),
-        body: JSON.stringify(categoryData),
-      });
-      setCategories((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, ...categoryData } : c))
-      );
+      try {
+        const res = await fetch(`/api/categories/${id}`, {
+          method: "PUT",
+          headers: getHeaders(),
+          body: JSON.stringify(categoryData),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setCategories((prev) =>
+            prev.map((c) => (c.id === id ? { ...c, ...categoryData } : c))
+          );
+          toast.success("Kategori berhasil diperbarui");
+        } else {
+          toast.error(data.error || "Gagal memperbarui kategori");
+        }
+      } catch (error) {
+        console.error("Error updating category:", error);
+        toast.error("Gagal memperbarui kategori. Silakan coba lagi.");
+      }
     },
     [getHeaders]
   );
 
   const deleteCategory = useCallback(
     async (id: string) => {
-      await fetch(`/api/categories/${id}`, {
-        method: "DELETE",
-        headers: getHeaders(),
-      });
-      setCategories((prev) => prev.filter((c) => c.id !== id));
+      try {
+        const res = await fetch(`/api/categories/${id}`, {
+          method: "DELETE",
+          headers: getHeaders(),
+        });
+        if (res.ok) {
+          setCategories((prev) => prev.filter((c) => c.id !== id));
+          toast.success("Kategori berhasil dihapus");
+        } else {
+          const data = await res.json();
+          toast.error(data.error || "Gagal menghapus kategori");
+        }
+      } catch (error) {
+        console.error("Error deleting category:", error);
+        toast.error("Gagal menghapus kategori. Silakan coba lagi.");
+      }
     },
     [getHeaders]
   );
@@ -176,14 +208,22 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       transactionData: Omit<Transaction, "id" | "userId" | "createdAt">
     ) => {
       if (!user) return;
-      const res = await fetch("/api/transactions", {
-        method: "POST",
-        headers: getHeaders(),
-        body: JSON.stringify(transactionData),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setTransactions((prev) => [data.transaction, ...prev]);
+      try {
+        const res = await fetch("/api/transactions", {
+          method: "POST",
+          headers: getHeaders(),
+          body: JSON.stringify(transactionData),
+        });
+        const data = await res.json();
+        if (data.success) {
+          setTransactions((prev) => [data.transaction, ...prev]);
+          toast.success("Transaksi berhasil ditambahkan");
+        } else {
+          toast.error(data.error || "Gagal menambahkan transaksi");
+        }
+      } catch (error) {
+        console.error("Error adding transaction:", error);
+        toast.error("Gagal menambahkan transaksi. Silakan coba lagi.");
       }
     },
     [user, getHeaders]
@@ -191,25 +231,47 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
   const updateTransaction = useCallback(
     async (id: string, transactionData: Partial<Transaction>) => {
-      await fetch(`/api/transactions/${id}`, {
-        method: "PUT",
-        headers: getHeaders(),
-        body: JSON.stringify(transactionData),
-      });
-      setTransactions((prev) =>
-        prev.map((t) => (t.id === id ? { ...t, ...transactionData } : t))
-      );
+      try {
+        const res = await fetch(`/api/transactions/${id}`, {
+          method: "PUT",
+          headers: getHeaders(),
+          body: JSON.stringify(transactionData),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setTransactions((prev) =>
+            prev.map((t) => (t.id === id ? { ...t, ...transactionData } : t))
+          );
+          toast.success("Transaksi berhasil diperbarui");
+        } else {
+          toast.error(data.error || "Gagal memperbarui transaksi");
+        }
+      } catch (error) {
+        console.error("Error updating transaction:", error);
+        toast.error("Gagal memperbarui transaksi. Silakan coba lagi.");
+      }
     },
     [getHeaders]
   );
 
   const deleteTransaction = useCallback(
     async (id: string) => {
-      await fetch(`/api/transactions/${id}`, {
-        method: "DELETE",
-        headers: getHeaders(),
-      });
-      setTransactions((prev) => prev.filter((t) => t.id !== id));
+      try {
+        const res = await fetch(`/api/transactions/${id}`, {
+          method: "DELETE",
+          headers: getHeaders(),
+        });
+        if (res.ok) {
+          setTransactions((prev) => prev.filter((t) => t.id !== id));
+          toast.success("Transaksi berhasil dihapus");
+        } else {
+          const data = await res.json();
+          toast.error(data.error || "Gagal menghapus transaksi");
+        }
+      } catch (error) {
+        console.error("Error deleting transaction:", error);
+        toast.error("Gagal menghapus transaksi. Silakan coba lagi.");
+      }
     },
     [getHeaders]
   );
@@ -217,25 +279,32 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const addBudget = useCallback(
     async (budgetData: Omit<Budget, "id" | "userId" | "createdAt">) => {
       if (!user) return;
-      const res = await fetch("/api/budgets", {
-        method: "POST",
-        headers: getHeaders(),
-        body: JSON.stringify(budgetData),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setBudgets((prev) => {
-          // Replace if exists for same period
-          const filtered = prev.filter(
-            (b) =>
-              !(
-                b.categoryId === data.budget.categoryId &&
-                b.month === data.budget.month &&
-                b.year === data.budget.year
-              )
-          );
-          return [...filtered, data.budget];
+      try {
+        const res = await fetch("/api/budgets", {
+          method: "POST",
+          headers: getHeaders(),
+          body: JSON.stringify(budgetData),
         });
+        const data = await res.json();
+        if (data.success) {
+          setBudgets((prev) => {
+            const filtered = prev.filter(
+              (b) =>
+                !(
+                  b.categoryId === data.budget.categoryId &&
+                  b.month === data.budget.month &&
+                  b.year === data.budget.year
+                )
+            );
+            return [...filtered, data.budget];
+          });
+          toast.success("Budget berhasil ditambahkan");
+        } else {
+          toast.error(data.error || "Gagal menambahkan budget");
+        }
+      } catch (error) {
+        console.error("Error adding budget:", error);
+        toast.error("Gagal menambahkan budget. Silakan coba lagi.");
       }
     },
     [user, getHeaders]
@@ -243,25 +312,47 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
   const updateBudget = useCallback(
     async (id: string, budgetData: Partial<Budget>) => {
-      await fetch(`/api/budgets/${id}`, {
-        method: "PUT",
-        headers: getHeaders(),
-        body: JSON.stringify(budgetData),
-      });
-      setBudgets((prev) =>
-        prev.map((b) => (b.id === id ? { ...b, ...budgetData } : b))
-      );
+      try {
+        const res = await fetch(`/api/budgets/${id}`, {
+          method: "PUT",
+          headers: getHeaders(),
+          body: JSON.stringify(budgetData),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setBudgets((prev) =>
+            prev.map((b) => (b.id === id ? { ...b, ...budgetData } : b))
+          );
+          toast.success("Budget berhasil diperbarui");
+        } else {
+          toast.error(data.error || "Gagal memperbarui budget");
+        }
+      } catch (error) {
+        console.error("Error updating budget:", error);
+        toast.error("Gagal memperbarui budget. Silakan coba lagi.");
+      }
     },
     [getHeaders]
   );
 
   const deleteBudget = useCallback(
     async (id: string) => {
-      await fetch(`/api/budgets/${id}`, {
-        method: "DELETE",
-        headers: getHeaders(),
-      });
-      setBudgets((prev) => prev.filter((b) => b.id !== id));
+      try {
+        const res = await fetch(`/api/budgets/${id}`, {
+          method: "DELETE",
+          headers: getHeaders(),
+        });
+        if (res.ok) {
+          setBudgets((prev) => prev.filter((b) => b.id !== id));
+          toast.success("Budget berhasil dihapus");
+        } else {
+          const data = await res.json();
+          toast.error(data.error || "Gagal menghapus budget");
+        }
+      } catch (error) {
+        console.error("Error deleting budget:", error);
+        toast.error("Gagal menghapus budget. Silakan coba lagi.");
+      }
     },
     [getHeaders]
   );
@@ -269,14 +360,22 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const addDebt = useCallback(
     async (debtData: Omit<Debt, "id" | "userId" | "createdAt">) => {
       if (!user) return;
-      const res = await fetch("/api/debts", {
-        method: "POST",
-        headers: getHeaders(),
-        body: JSON.stringify(debtData),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setDebts((prev) => [data.debt, ...prev]);
+      try {
+        const res = await fetch("/api/debts", {
+          method: "POST",
+          headers: getHeaders(),
+          body: JSON.stringify(debtData),
+        });
+        const data = await res.json();
+        if (data.success) {
+          setDebts((prev) => [data.debt, ...prev]);
+          toast.success("Hutang/Piutang berhasil ditambahkan");
+        } else {
+          toast.error(data.error || "Gagal menambahkan hutang/piutang");
+        }
+      } catch (error) {
+        console.error("Error adding debt:", error);
+        toast.error("Gagal menambahkan hutang/piutang. Silakan coba lagi.");
       }
     },
     [user, getHeaders]
@@ -284,46 +383,79 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
   const updateDebt = useCallback(
     async (id: string, debtData: Partial<Debt>) => {
-      await fetch(`/api/debts/${id}`, {
-        method: "PUT",
-        headers: getHeaders(),
-        body: JSON.stringify(debtData),
-      });
-      setDebts((prev) =>
-        prev.map((d) => (d.id === id ? { ...d, ...debtData } : d))
-      );
+      try {
+        const res = await fetch(`/api/debts/${id}`, {
+          method: "PUT",
+          headers: getHeaders(),
+          body: JSON.stringify(debtData),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setDebts((prev) =>
+            prev.map((d) => (d.id === id ? { ...d, ...debtData } : d))
+          );
+          toast.success("Hutang/Piutang berhasil diperbarui");
+        } else {
+          toast.error(data.error || "Gagal memperbarui hutang/piutang");
+        }
+      } catch (error) {
+        console.error("Error updating debt:", error);
+        toast.error("Gagal memperbarui hutang/piutang. Silakan coba lagi.");
+      }
     },
     [getHeaders]
   );
 
   const deleteDebt = useCallback(
     async (id: string) => {
-      await fetch(`/api/debts/${id}`, {
-        method: "DELETE",
-        headers: getHeaders(),
-      });
-      setDebts((prev) => prev.filter((d) => d.id !== id));
+      try {
+        const res = await fetch(`/api/debts/${id}`, {
+          method: "DELETE",
+          headers: getHeaders(),
+        });
+        if (res.ok) {
+          setDebts((prev) => prev.filter((d) => d.id !== id));
+          toast.success("Hutang/Piutang berhasil dihapus");
+        } else {
+          const data = await res.json();
+          toast.error(data.error || "Gagal menghapus hutang/piutang");
+        }
+      } catch (error) {
+        console.error("Error deleting debt:", error);
+        toast.error("Gagal menghapus hutang/piutang. Silakan coba lagi.");
+      }
     },
     [getHeaders]
   );
 
   const markDebtAsPaid = useCallback(
     async (id: string) => {
-      await fetch(`/api/debts/${id}/pay`, {
-        method: "POST",
-        headers: getHeaders(),
-      });
-      setDebts((prev) =>
-        prev.map((d) =>
-          d.id === id
-            ? {
-                ...d,
-                isPaid: true,
-                paidDate: new Date().toISOString().split("T")[0],
-              }
-            : d
-        )
-      );
+      try {
+        const res = await fetch(`/api/debts/${id}/pay`, {
+          method: "POST",
+          headers: getHeaders(),
+        });
+        if (res.ok) {
+          setDebts((prev) =>
+            prev.map((d) =>
+              d.id === id
+                ? {
+                    ...d,
+                    isPaid: true,
+                    paidDate: new Date().toISOString().split("T")[0],
+                  }
+                : d
+            )
+          );
+          toast.success("Hutang/Piutang berhasil ditandai lunas");
+        } else {
+          const data = await res.json();
+          toast.error(data.error || "Gagal menandai sebagai lunas");
+        }
+      } catch (error) {
+        console.error("Error marking debt as paid:", error);
+        toast.error("Gagal menandai sebagai lunas. Silakan coba lagi.");
+      }
     },
     [getHeaders]
   );
@@ -380,14 +512,22 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const addSavingsGoal = useCallback(
     async (goalData: Omit<SavingsGoal, "id" | "userId" | "createdAt">) => {
       if (!user) return;
-      const res = await fetch("/api/savings-goals", {
-        method: "POST",
-        headers: getHeaders(),
-        body: JSON.stringify(goalData),
-      });
-      const data = await res.json();
-      if (data.id) {
-        setSavingsGoals((prev) => [data, ...prev]);
+      try {
+        const res = await fetch("/api/savings-goals", {
+          method: "POST",
+          headers: getHeaders(),
+          body: JSON.stringify(goalData),
+        });
+        const data = await res.json();
+        if (data.id) {
+          setSavingsGoals((prev) => [data, ...prev]);
+          toast.success("Target tabungan berhasil ditambahkan");
+        } else {
+          toast.error(data.error || "Gagal menambahkan target tabungan");
+        }
+      } catch (error) {
+        console.error("Error adding savings goal:", error);
+        toast.error("Gagal menambahkan target tabungan. Silakan coba lagi.");
       }
     },
     [user, getHeaders]
@@ -395,25 +535,47 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
   const updateSavingsGoal = useCallback(
     async (id: string, goalData: Partial<SavingsGoal>) => {
-      await fetch(`/api/savings-goals/${id}`, {
-        method: "PUT",
-        headers: getHeaders(),
-        body: JSON.stringify(goalData),
-      });
-      setSavingsGoals((prev) =>
-        prev.map((g) => (g.id === id ? { ...g, ...goalData } : g))
-      );
+      try {
+        const res = await fetch(`/api/savings-goals/${id}`, {
+          method: "PUT",
+          headers: getHeaders(),
+          body: JSON.stringify(goalData),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setSavingsGoals((prev) =>
+            prev.map((g) => (g.id === id ? { ...g, ...goalData } : g))
+          );
+          toast.success("Target tabungan berhasil diperbarui");
+        } else {
+          toast.error(data.error || "Gagal memperbarui target tabungan");
+        }
+      } catch (error) {
+        console.error("Error updating savings goal:", error);
+        toast.error("Gagal memperbarui target tabungan. Silakan coba lagi.");
+      }
     },
     [getHeaders]
   );
 
   const deleteSavingsGoal = useCallback(
     async (id: string) => {
-      await fetch(`/api/savings-goals/${id}`, {
-        method: "DELETE",
-        headers: getHeaders(),
-      });
-      setSavingsGoals((prev) => prev.filter((g) => g.id !== id));
+      try {
+        const res = await fetch(`/api/savings-goals/${id}`, {
+          method: "DELETE",
+          headers: getHeaders(),
+        });
+        if (res.ok) {
+          setSavingsGoals((prev) => prev.filter((g) => g.id !== id));
+          toast.success("Target tabungan berhasil dihapus");
+        } else {
+          const data = await res.json();
+          toast.error(data.error || "Gagal menghapus target tabungan");
+        }
+      } catch (error) {
+        console.error("Error deleting savings goal:", error);
+        toast.error("Gagal menghapus target tabungan. Silakan coba lagi.");
+      }
     },
     [getHeaders]
   );
@@ -421,14 +583,22 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const addRecurringTransaction = useCallback(
     async (recurringData: Omit<RecurringTransaction, "id" | "userId" | "createdAt">) => {
       if (!user) return;
-      const res = await fetch("/api/recurring-transactions", {
-        method: "POST",
-        headers: getHeaders(),
-        body: JSON.stringify(recurringData),
-      });
-      const data = await res.json();
-      if (data.id) {
-        setRecurringTransactions((prev) => [data, ...prev]);
+      try {
+        const res = await fetch("/api/recurring-transactions", {
+          method: "POST",
+          headers: getHeaders(),
+          body: JSON.stringify(recurringData),
+        });
+        const data = await res.json();
+        if (data.id) {
+          setRecurringTransactions((prev) => [data, ...prev]);
+          toast.success("Transaksi berulang berhasil ditambahkan");
+        } else {
+          toast.error(data.error || "Gagal menambahkan transaksi berulang");
+        }
+      } catch (error) {
+        console.error("Error adding recurring transaction:", error);
+        toast.error("Gagal menambahkan transaksi berulang. Silakan coba lagi.");
       }
     },
     [user, getHeaders]
@@ -436,25 +606,47 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
   const updateRecurringTransaction = useCallback(
     async (id: string, recurringData: Partial<RecurringTransaction>) => {
-      await fetch(`/api/recurring-transactions/${id}`, {
-        method: "PUT",
-        headers: getHeaders(),
-        body: JSON.stringify(recurringData),
-      });
-      setRecurringTransactions((prev) =>
-        prev.map((r) => (r.id === id ? { ...r, ...recurringData } : r))
-      );
+      try {
+        const res = await fetch(`/api/recurring-transactions/${id}`, {
+          method: "PUT",
+          headers: getHeaders(),
+          body: JSON.stringify(recurringData),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setRecurringTransactions((prev) =>
+            prev.map((r) => (r.id === id ? { ...r, ...recurringData } : r))
+          );
+          toast.success("Transaksi berulang berhasil diperbarui");
+        } else {
+          toast.error(data.error || "Gagal memperbarui transaksi berulang");
+        }
+      } catch (error) {
+        console.error("Error updating recurring transaction:", error);
+        toast.error("Gagal memperbarui transaksi berulang. Silakan coba lagi.");
+      }
     },
     [getHeaders]
   );
 
   const deleteRecurringTransaction = useCallback(
     async (id: string) => {
-      await fetch(`/api/recurring-transactions/${id}`, {
-        method: "DELETE",
-        headers: getHeaders(),
-      });
-      setRecurringTransactions((prev) => prev.filter((r) => r.id !== id));
+      try {
+        const res = await fetch(`/api/recurring-transactions/${id}`, {
+          method: "DELETE",
+          headers: getHeaders(),
+        });
+        if (res.ok) {
+          setRecurringTransactions((prev) => prev.filter((r) => r.id !== id));
+          toast.success("Transaksi berulang berhasil dihapus");
+        } else {
+          const data = await res.json();
+          toast.error(data.error || "Gagal menghapus transaksi berulang");
+        }
+      } catch (error) {
+        console.error("Error deleting recurring transaction:", error);
+        toast.error("Gagal menghapus transaksi berulang. Silakan coba lagi.");
+      }
     },
     [getHeaders]
   );

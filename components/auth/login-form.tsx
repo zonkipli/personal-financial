@@ -18,6 +18,7 @@ import {
 import { useAuth } from "@/contexts/auth-context";
 import { Loader2, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
@@ -36,9 +37,12 @@ export function LoginForm() {
     const result = await login(email, password);
 
     if (result.success) {
+      toast.success("Login berhasil! Selamat datang kembali.");
       router.push("/dashboard");
     } else {
-      setError(result.error || "Login gagal");
+      const errorMessage = result.error || "Login gagal";
+      setError(errorMessage);
+      toast.error(errorMessage);
     }
 
     setIsLoading(false);

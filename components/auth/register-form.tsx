@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useAuth } from "@/contexts/auth-context"
 import { Loader2, Mail, Lock, User, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
+import { toast } from "sonner"
 
 export function RegisterForm() {
   const [name, setName] = useState("")
@@ -28,7 +29,9 @@ export function RegisterForm() {
     setError("")
 
     if (password !== confirmPassword) {
-      setError("Password tidak cocok")
+      const errorMessage = "Password tidak cocok"
+      setError(errorMessage)
+      toast.error(errorMessage)
       return
     }
 
@@ -37,9 +40,12 @@ export function RegisterForm() {
     const result = await register(email, password, name)
 
     if (result.success) {
+      toast.success("Akun berhasil dibuat! Selamat datang.")
       router.push("/dashboard")
     } else {
-      setError(result.error || "Registrasi gagal")
+      const errorMessage = result.error || "Registrasi gagal"
+      setError(errorMessage)
+      toast.error(errorMessage)
     }
 
     setIsLoading(false)
