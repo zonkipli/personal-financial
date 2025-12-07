@@ -59,4 +59,9 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
   return passwordHash === hash
 }
 
-export default { query, generateUUID, hashPassword, verifyPassword }
+// Format date for MySQL (YYYY-MM-DD HH:MM:SS)
+export function formatDateForMySQL(date: Date = new Date()): string {
+  return date.toISOString().slice(0, 19).replace('T', ' ')
+}
+
+export default { query, generateUUID, hashPassword, verifyPassword, formatDateForMySQL }

@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { query, generateUUID } from "@/lib/db"
+import { query, generateUUID, formatDateForMySQL } from "@/lib/db"
 
 interface BudgetRow {
   id: string
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
           amount,
           month,
           year,
-          createdAt: new Date().toISOString(),
+          createdAt: formatDateForMySQL(),
         },
       })
     }
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
         amount,
         month,
         year,
-        createdAt: new Date().toISOString(),
+        createdAt: formatDateForMySQL(),
       },
     })
   } catch (error) {
