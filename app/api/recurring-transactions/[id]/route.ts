@@ -24,6 +24,14 @@ export async function PUT(
       isActive,
     } = body;
 
+    // Validate required fields
+    if (!categoryId || !type || amount === undefined || !frequency || !startDate) {
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
     await query(
       `UPDATE recurring_transactions
        SET category_id = ?, type = ?, amount = ?, description = ?, frequency = ?,
@@ -37,7 +45,7 @@ export async function PUT(
         frequency,
         startDate,
         endDate || null,
-        isActive ?? true,
+        isActive !== undefined ? isActive : true,
         id,
         userId,
       ]
