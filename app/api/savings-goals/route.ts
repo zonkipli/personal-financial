@@ -14,7 +14,14 @@ export async function GET(request: NextRequest) {
       [userId]
     );
 
-    return NextResponse.json(goals);
+    // Ensure numeric fields are numbers, not strings
+    const formattedGoals = goals.map(goal => ({
+      ...goal,
+      targetAmount: Number(goal.targetAmount) || 0,
+      currentAmount: Number(goal.currentAmount) || 0,
+    }));
+
+    return NextResponse.json(formattedGoals);
   } catch (error) {
     console.error("Error fetching savings goals:", error);
     return NextResponse.json(

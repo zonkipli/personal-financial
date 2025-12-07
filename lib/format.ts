@@ -1,12 +1,13 @@
 // Formatting utilities for the finance app
 
 export function formatCurrency(amount: number): string {
+  const numericAmount = typeof amount === 'number' && !isNaN(amount) ? amount : 0;
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
     currency: "IDR",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(amount)
+  }).format(numericAmount)
 }
 
 export function formatDate(date: string | Date): string {

@@ -14,7 +14,13 @@ export async function GET(request: NextRequest) {
       [userId]
     );
 
-    return NextResponse.json(recurring);
+    // Ensure numeric fields are numbers, not strings
+    const formattedRecurring = recurring.map(r => ({
+      ...r,
+      amount: Number(r.amount) || 0,
+    }));
+
+    return NextResponse.json(formattedRecurring);
   } catch (error) {
     console.error("Error fetching recurring transactions:", error);
     return NextResponse.json(

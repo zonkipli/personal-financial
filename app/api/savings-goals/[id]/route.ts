@@ -12,22 +12,52 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { name, targetAmount, currentAmount, deadline, description, isCompleted } = body;
+
+    // Build dynamic update query based on provided fields
+    const updates: string[] = [];
+    const values: any[] = [];
+
+    if (body.name !== undefined) {
+      updates.push("name = ?");
+      values.push(body.name);
+    }
+    if (body.targetAmount !== undefined) {
+      updates.push("target_amount = ?");
+      values.push(body.targetAmount);
+    }
+    if (body.currentAmount !== undefined) {
+      updates.push("current_amount = ?");
+      values.push(body.currentAmount);
+    }
+    if (body.deadline !== undefined) {
+      updates.push("deadline = ?");
+      values.push(body.deadline || null);
+    }
+    if (body.description !== undefined) {
+      updates.push("description = ?");
+      values.push(body.description || "");
+    }
+    if (body.isCompleted !== undefined) {
+      updates.push("is_completed = ?");
+      values.push(body.isCompleted);
+    }
+
+    if (updates.length === 0) {
+      return NextResponse.json(
+        { error: "No fields to update" },
+        { status: 400 }
+      );
+    }
+
+    // Add WHERE clause values
+    values.push(params.id);
+    values.push(userId);
 
     await query(
       `UPDATE savings_goals
-       SET name = ?, target_amount = ?, current_amount = ?, deadline = ?, description = ?, is_completed = ?
+       SET ${updates.join(", ")}
        WHERE id = ? AND user_id = ?`,
-      [
-        name,
-        targetAmount,
-        currentAmount,
-        deadline || null,
-        description || "",
-        isCompleted || false,
-        params.id,
-        userId,
-      ]
+      values
     );
 
     return NextResponse.json({ success: true });
