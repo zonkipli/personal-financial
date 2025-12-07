@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { query } from "@/lib/db"
+import { supabase } from "@/lib/db"
 import type { Tag } from "@/types"
 
 export async function GET(request: Request) {
@@ -11,13 +11,22 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "User ID required" }, { status: 400 })
     }
 
-    const tags = await query<Tag[]>(
-      `SELECT id, user_id as userId, name, color, created_at as createdAt
-       FROM tags
-       WHERE user_id = ?
-       ORDER BY name ASC`,
-      [userId]
-    )
+    const { data: tagsData, error } = await supabase
+      .from('tags')
+      .select('id, user_id, name, color, created_at')
+      .eq('user_id', userId)
+      .order('name', { ascending: true })
+
+    if (error) throw error
+
+    // Map database fields to camelCase
+    const tags = (tagsData || []).map(tag => ({
+      id: tag.id,
+      userId: tag.user_id,
+      name: tag.name,
+      color: tag.color,
+      createdAt: tag.created_at
+    }))
 
     return NextResponse.json(tags)
   } catch (error: unknown) {
@@ -43,20 +52,39 @@ export async function POST(request: Request) {
 
     const id = crypto.randomUUID()
 
-    await query(
-      `INSERT INTO tags (id, user_id, name, color)
-       VALUES (?, ?, ?, ?)`,
-      [id, userId, name, color || '#8b5cf6']
-    )
+    const { error: insertError } = await supabase
+      .from('tags')
+      .insert({
+        id,
+        user_id: userId,
+        name,
+        color: color || '#8b5cf6'
+      })
 
-    const [tag] = await query<Tag[]>(
-      `SELECT id, user_id as userId, name, color, created_at as createdAt
-       FROM tags
-       WHERE id = ?`,
-      [id]
-    )
+    if (insertError) throw insertError
 
-    return NextResponse.json(tag, { status: 201 })
+    const { data: tag, error: selectError } = await supabase
+      .from('tags')
+      .select('id, user_id, name, color, created_at')
+      .eq('id', id)
+      .maybeSingle()
+
+    if (selectError) throw selectError
+
+    if (!tag) {
+      throw new Error("Failed to retrieve created tag")
+    }
+
+    // Map database fields to camelCase
+    const formattedTag = {
+      id: tag.id,
+      userId: tag.user_id,
+      name: tag.name,
+      color: tag.color,
+      createdAt: tag.created_at
+    }
+
+    return NextResponse.json(formattedTag, { status: 201 })
   } catch (error: unknown) {
     console.error("Error creating tag:", error)
     return NextResponse.json(

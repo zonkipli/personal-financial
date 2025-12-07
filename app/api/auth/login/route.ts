@@ -1,12 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { query, verifyPassword } from "@/lib/db"
+import { supabase, verifyPassword } from "@/lib/db"
 
 interface UserRow {
   id: string
   email: string
   name: string
   password_hash: string
-  created_at: Date
+  created_at: string
 }
 
 export async function POST(request: NextRequest) {
@@ -18,19 +18,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Find user
-    const users = await query<UserRow[]>(
-      "SELECT id, email, name, password_hash, created_at FROM users WHERE email = ?",
-      [email],
-    )
+    const { data: users, error } = await supabase
+      .from('users')
+      .select('id, email, name, password_hash, created_at')
+      .eq('email', email)
+      .maybeSingle()
 
-    if (users.length === 0) {
+    if (error || !users) {
       return NextResponse.json({ success: false, error: "Email atau password salah" }, { status: 401 })
     }
 
-    const user = users[0]
-
     // Verify password
-    const isValid = await verifyPassword(password, user.password_hash)
+    const isValid = await verifyPassword(password, users.password_hash)
     if (!isValid) {
       return NextResponse.json({ success: false, error: "Email atau password salah" }, { status: 401 })
     }
@@ -38,10 +37,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        createdAt: user.created_at ? new Date(user.created_at).toISOString() : new Date().toISOString(),
+        id: users.id,
+        email: users.email,
+        name: users.name,
+        createdAt: users.created_at || new Date().toISOString(),
       },
     })
   } catch (error) {
@@ -49,7 +48,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: "Terjadi kesalahan server. Pastikan database MySQL sudah di-setup dengan benar.",
+        error: "Terjadi kesalahan server.",
       },
       { status: 500 },
     )

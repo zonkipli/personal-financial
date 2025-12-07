@@ -1,11 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { query, generateUUID, hashPassword } from "@/lib/db"
+import { supabase, generateUUID, hashPassword } from "@/lib/db"
 
 interface UserRow {
   id: string
   email: string
   name: string
-  created_at: Date
+  created_at: string
 }
 
 const defaultCategories = [
@@ -38,9 +38,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if email exists
-    const existingUsers = await query<UserRow[]>("SELECT id FROM users WHERE email = ?", [email])
+    const { data: existingUsers } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', email)
+      .maybeSingle()
 
-    if (existingUsers.length > 0) {
+    if (existingUsers) {
       return NextResponse.json({ success: false, error: "Email sudah terdaftar" }, { status: 400 })
     }
 
@@ -48,30 +52,43 @@ export async function POST(request: NextRequest) {
     const userId = generateUUID()
     const passwordHash = await hashPassword(password)
 
-    await query("INSERT INTO users (id, email, name, password_hash) VALUES (?, ?, ?, ?)", [
-      userId,
-      email,
-      name,
-      passwordHash,
-    ])
+    const { error: userError } = await supabase
+      .from('users')
+      .insert({
+        id: userId,
+        email,
+        name,
+        password_hash: passwordHash
+      })
+
+    if (userError) {
+      throw userError
+    }
 
     // Create default categories
-    for (const cat of defaultCategories) {
-      const catId = generateUUID()
-      await query("INSERT INTO categories (id, user_id, name, type, color, icon) VALUES (?, ?, ?, ?, ?, ?)", [
-        catId,
-        userId,
-        cat.name,
-        cat.type,
-        cat.color,
-        cat.icon,
-      ])
+    const categoriesToInsert = defaultCategories.map(cat => ({
+      id: generateUUID(),
+      user_id: userId,
+      name: cat.name,
+      type: cat.type,
+      color: cat.color,
+      icon: cat.icon
+    }))
+
+    const { error: categoriesError } = await supabase
+      .from('categories')
+      .insert(categoriesToInsert)
+
+    if (categoriesError) {
+      console.error('Error creating categories:', categoriesError)
     }
 
     // Fetch created user
-    const users = await query<UserRow[]>("SELECT id, email, name, created_at FROM users WHERE id = ?", [userId])
-
-    const user = users[0]
+    const { data: user } = await supabase
+      .from('users')
+      .select('id, email, name, created_at')
+      .eq('id', userId)
+      .single()
 
     return NextResponse.json({
       success: true,
@@ -79,7 +96,7 @@ export async function POST(request: NextRequest) {
         id: user.id,
         email: user.email,
         name: user.name,
-        createdAt: user.created_at ? new Date(user.created_at).toISOString() : new Date().toISOString(),
+        createdAt: user.created_at || new Date().toISOString(),
       },
     })
   } catch (error) {
@@ -87,7 +104,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: "Terjadi kesalahan server. Pastikan database MySQL sudah di-setup dengan benar.",
+        error: "Terjadi kesalahan server.",
       },
       { status: 500 },
     )

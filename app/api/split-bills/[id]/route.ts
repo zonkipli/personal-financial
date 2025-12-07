@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { query } from "@/lib/db"
+import { supabase } from "@/lib/db"
 
 export async function DELETE(
   request: Request,
@@ -8,7 +8,12 @@ export async function DELETE(
   try {
     const { id } = await params
 
-    await query("DELETE FROM split_bills WHERE id = ?", [id])
+    const { error } = await supabase
+      .from('split_bills')
+      .delete()
+      .eq('id', id)
+
+    if (error) throw error
 
     return NextResponse.json({ message: "Split bill deleted successfully" })
   } catch (error: unknown) {

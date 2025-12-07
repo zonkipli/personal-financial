@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { query } from "@/lib/db"
+import { supabase } from "@/lib/db"
 
 export async function POST(
   request: Request,
@@ -19,12 +19,15 @@ export async function POST(
 
     const paidDate = new Date().toISOString().split('T')[0]
 
-    await query(
-      `UPDATE split_bill_participants
-       SET is_paid = true, paid_date = ?
-       WHERE id = ?`,
-      [paidDate, participantId]
-    )
+    const { error } = await supabase
+      .from('split_bill_participants')
+      .update({
+        is_paid: true,
+        paid_date: paidDate
+      })
+      .eq('id', participantId)
+
+    if (error) throw error
 
     return NextResponse.json({ message: "Payment recorded successfully" })
   } catch (error: unknown) {

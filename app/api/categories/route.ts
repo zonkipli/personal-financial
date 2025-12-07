@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { query, generateUUID, formatDateForMySQL } from "@/lib/db"
+import { supabase, generateUUID } from "@/lib/db"
 
 interface CategoryRow {
   id: string
@@ -8,7 +8,7 @@ interface CategoryRow {
   type: "income" | "expense"
   color: string
   icon: string
-  created_at: Date | string
+  created_at: string
 }
 
 export async function GET(request: NextRequest) {
@@ -18,21 +18,27 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
     }
 
-    const categories = await query<CategoryRow[]>(
-      "SELECT id, user_id, name, type, color, icon, created_at FROM categories WHERE user_id = ? ORDER BY created_at ASC",
-      [userId],
-    )
+    const { data: categories, error } = await supabase
+      .from("categories")
+      .select("id, user_id, name, type, color, icon, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: true })
+
+    if (error) {
+      console.error("[v0] Get categories error:", error)
+      return NextResponse.json({ success: false, error: "Terjadi kesalahan server" }, { status: 500 })
+    }
 
     return NextResponse.json({
       success: true,
-      categories: categories.map((c) => ({
+      categories: (categories || []).map((c: CategoryRow) => ({
         id: c.id,
         userId: c.user_id,
         name: c.name,
         type: c.type,
         color: c.color,
         icon: c.icon,
-        createdAt: typeof c.created_at === "string" ? c.created_at : new Date(c.created_at).toISOString(),
+        createdAt: c.created_at,
       })),
     })
   } catch (error) {
@@ -51,25 +57,34 @@ export async function POST(request: NextRequest) {
     const { name, type, color, icon } = await request.json()
 
     const categoryId = generateUUID()
-    await query("INSERT INTO categories (id, user_id, name, type, color, icon) VALUES (?, ?, ?, ?, ?, ?)", [
-      categoryId,
-      userId,
-      name,
-      type,
-      color || "#6366f1",
-      icon || "CircleDollarSign",
-    ])
-
-    return NextResponse.json({
-      success: true,
-      category: {
+    const { data, error } = await supabase
+      .from("categories")
+      .insert({
         id: categoryId,
-        userId,
+        user_id: userId,
         name,
         type,
         color: color || "#6366f1",
         icon: icon || "CircleDollarSign",
-        createdAt: formatDateForMySQL(),
+      })
+      .select()
+      .single()
+
+    if (error) {
+      console.error("[v0] Create category error:", error)
+      return NextResponse.json({ success: false, error: "Terjadi kesalahan server" }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      success: true,
+      category: {
+        id: data.id,
+        userId: data.user_id,
+        name: data.name,
+        type: data.type,
+        color: data.color,
+        icon: data.icon,
+        createdAt: data.created_at,
       },
     })
   } catch (error) {

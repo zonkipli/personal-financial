@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { query } from "@/lib/db"
+import { supabase } from "@/lib/db"
 import type { Account } from "@/types"
 
 export async function GET(
@@ -9,20 +9,33 @@ export async function GET(
   try {
     const { id } = await params
 
-    const [account] = await query<Account[]>(
-      `SELECT
-        id, user_id as userId, name, type, balance, currency, color, icon,
-        is_active as isActive, created_at as createdAt
-      FROM accounts
-      WHERE id = ?`,
-      [id]
-    )
+    const { data: account, error } = await supabase
+      .from('accounts')
+      .select('id, user_id, name, type, balance, currency, color, icon, is_active, created_at')
+      .eq('id', id)
+      .maybeSingle()
+
+    if (error) throw error
 
     if (!account) {
       return NextResponse.json({ error: "Account not found" }, { status: 404 })
     }
 
-    return NextResponse.json(account)
+    // Map database fields to camelCase
+    const formattedAccount = {
+      id: account.id,
+      userId: account.user_id,
+      name: account.name,
+      type: account.type,
+      balance: account.balance,
+      currency: account.currency,
+      color: account.color,
+      icon: account.icon,
+      isActive: account.is_active,
+      createdAt: account.created_at
+    }
+
+    return NextResponse.json(formattedAccount)
   } catch (error: unknown) {
     console.error("Error fetching account:", error)
     return NextResponse.json(
@@ -41,23 +54,48 @@ export async function PUT(
     const body = await request.json()
     const { name, type, balance, currency, color, icon, isActive } = body
 
-    await query(
-      `UPDATE accounts
-       SET name = ?, type = ?, balance = ?, currency = ?, color = ?, icon = ?, is_active = ?
-       WHERE id = ?`,
-      [name, type, balance, currency, color, icon, isActive, id]
-    )
+    const { error: updateError } = await supabase
+      .from('accounts')
+      .update({
+        name,
+        type,
+        balance,
+        currency,
+        color,
+        icon,
+        is_active: isActive
+      })
+      .eq('id', id)
 
-    const [account] = await query<Account[]>(
-      `SELECT
-        id, user_id as userId, name, type, balance, currency, color, icon,
-        is_active as isActive, created_at as createdAt
-      FROM accounts
-      WHERE id = ?`,
-      [id]
-    )
+    if (updateError) throw updateError
 
-    return NextResponse.json(account)
+    const { data: account, error: selectError } = await supabase
+      .from('accounts')
+      .select('id, user_id, name, type, balance, currency, color, icon, is_active, created_at')
+      .eq('id', id)
+      .maybeSingle()
+
+    if (selectError) throw selectError
+
+    if (!account) {
+      throw new Error("Failed to retrieve updated account")
+    }
+
+    // Map database fields to camelCase
+    const formattedAccount = {
+      id: account.id,
+      userId: account.user_id,
+      name: account.name,
+      type: account.type,
+      balance: account.balance,
+      currency: account.currency,
+      color: account.color,
+      icon: account.icon,
+      isActive: account.is_active,
+      createdAt: account.created_at
+    }
+
+    return NextResponse.json(formattedAccount)
   } catch (error: unknown) {
     console.error("Error updating account:", error)
     return NextResponse.json(
@@ -75,7 +113,12 @@ export async function DELETE(
     const { id } = await params
 
     // Soft delete: set is_active to false
-    await query("UPDATE accounts SET is_active = false WHERE id = ?", [id])
+    const { error } = await supabase
+      .from('accounts')
+      .update({ is_active: false })
+      .eq('id', id)
+
+    if (error) throw error
 
     return NextResponse.json({ message: "Account deleted successfully" })
   } catch (error: unknown) {

@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { query } from "@/lib/db"
+import { supabase } from "@/lib/db"
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -11,10 +11,24 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const { id } = await params
     const { type, personName, amount, description, dueDate, isPaid, paidDate } = await request.json()
 
-    await query(
-      "UPDATE debts SET type = ?, person_name = ?, amount = ?, description = ?, due_date = ?, is_paid = ?, paid_date = ? WHERE id = ? AND user_id = ?",
-      [type, personName, amount, description, dueDate || null, isPaid ? 1 : 0, paidDate || null, id, userId],
-    )
+    const { error } = await supabase
+      .from("debts")
+      .update({
+        type,
+        person_name: personName,
+        amount,
+        description,
+        due_date: dueDate || null,
+        is_paid: isPaid,
+        paid_date: paidDate || null,
+      })
+      .eq("id", id)
+      .eq("user_id", userId)
+
+    if (error) {
+      console.error("Update debt error:", error)
+      return NextResponse.json({ success: false, error: "Terjadi kesalahan server" }, { status: 500 })
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {
@@ -31,7 +45,17 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     }
 
     const { id } = await params
-    await query("DELETE FROM debts WHERE id = ? AND user_id = ?", [id, userId])
+
+    const { error } = await supabase
+      .from("debts")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", userId)
+
+    if (error) {
+      console.error("Delete debt error:", error)
+      return NextResponse.json({ success: false, error: "Terjadi kesalahan server" }, { status: 500 })
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {

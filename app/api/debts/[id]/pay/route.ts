@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { query } from "@/lib/db"
+import { supabase } from "@/lib/db"
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -11,7 +11,19 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { id } = await params
     const today = new Date().toISOString().split("T")[0]
 
-    await query("UPDATE debts SET is_paid = 1, paid_date = ? WHERE id = ? AND user_id = ?", [today, id, userId])
+    const { error } = await supabase
+      .from("debts")
+      .update({
+        is_paid: true,
+        paid_date: today,
+      })
+      .eq("id", id)
+      .eq("user_id", userId)
+
+    if (error) {
+      console.error("Mark debt as paid error:", error)
+      return NextResponse.json({ success: false, error: "Terjadi kesalahan server" }, { status: 500 })
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {

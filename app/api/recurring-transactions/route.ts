@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { query, generateUUID, formatDateForMySQL } from "@/lib/db";
+import { supabase, generateUUID } from "@/lib/db";
 import type { RecurringTransaction } from "@/types";
 
 export async function GET(request: NextRequest) {
@@ -9,13 +9,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const recurring = await query<any[]>(
-      "SELECT * FROM recurring_transactions WHERE user_id = ? ORDER BY created_at DESC",
-      [userId]
-    );
+    const { data: recurring, error } = await supabase
+      .from("recurring_transactions")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      throw error;
+    }
 
     // Map snake_case to camelCase and ensure numeric fields
-    const formattedRecurring = recurring.map(r => ({
+    const formattedRecurring = (recurring || []).map(r => ({
       id: r.id,
       userId: r.user_id,
       categoryId: r.category_id,
@@ -66,25 +71,30 @@ export async function POST(request: NextRequest) {
     }
 
     const id = generateUUID();
-    const now = formatDateForMySQL();
+    const now = new Date().toISOString();
 
-    await query(
-      `INSERT INTO recurring_transactions
-       (id, user_id, category_id, type, amount, description, frequency, start_date, end_date, is_active, last_processed, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, true, NULL, ?)`,
-      [
+    const { data, error } = await supabase
+      .from("recurring_transactions")
+      .insert({
         id,
-        userId,
-        categoryId,
+        user_id: userId,
+        category_id: categoryId,
         type,
         amount,
-        description || "",
+        description: description || "",
         frequency,
-        startDate,
-        endDate || null,
-        now,
-      ]
-    );
+        start_date: startDate,
+        end_date: endDate || null,
+        is_active: true,
+        last_processed: null,
+        created_at: now,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
 
     const newRecurring: RecurringTransaction = {
       id,

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { query } from "@/lib/db"
+import { supabase } from "@/lib/db"
 import type { Investment } from "@/types"
 
 export async function PUT(
@@ -11,25 +11,46 @@ export async function PUT(
     const body = await request.json()
     const { currentPrice, quantity, notes } = body
 
-    await query(
-      `UPDATE investments
-       SET current_price = ?, quantity = ?, notes = ?
-       WHERE id = ?`,
-      [currentPrice, quantity, notes, id]
-    )
+    const { error: updateError } = await supabase
+      .from('investments')
+      .update({
+        current_price: currentPrice,
+        quantity,
+        notes
+      })
+      .eq('id', id)
 
-    const [investment] = await query<Investment[]>(
-      `SELECT
-        id, user_id as userId, name, type, symbol, quantity,
-        buy_price as buyPrice, current_price as currentPrice,
-        currency, purchase_date as purchaseDate, notes,
-        created_at as createdAt
-      FROM investments
-      WHERE id = ?`,
-      [id]
-    )
+    if (updateError) throw updateError
 
-    return NextResponse.json(investment)
+    const { data: investment, error: selectError } = await supabase
+      .from('investments')
+      .select('id, user_id, name, type, symbol, quantity, buy_price, current_price, currency, purchase_date, notes, created_at')
+      .eq('id', id)
+      .maybeSingle()
+
+    if (selectError) throw selectError
+
+    if (!investment) {
+      throw new Error("Investment not found")
+    }
+
+    // Map database fields to camelCase
+    const formattedInvestment = {
+      id: investment.id,
+      userId: investment.user_id,
+      name: investment.name,
+      type: investment.type,
+      symbol: investment.symbol,
+      quantity: investment.quantity,
+      buyPrice: investment.buy_price,
+      currentPrice: investment.current_price,
+      currency: investment.currency,
+      purchaseDate: investment.purchase_date,
+      notes: investment.notes,
+      createdAt: investment.created_at
+    }
+
+    return NextResponse.json(formattedInvestment)
   } catch (error: unknown) {
     console.error("Error updating investment:", error)
     return NextResponse.json(
@@ -46,7 +67,12 @@ export async function DELETE(
   try {
     const { id } = await params
 
-    await query("DELETE FROM investments WHERE id = ?", [id])
+    const { error } = await supabase
+      .from('investments')
+      .delete()
+      .eq('id', id)
+
+    if (error) throw error
 
     return NextResponse.json({ message: "Investment deleted successfully" })
   } catch (error: unknown) {

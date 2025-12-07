@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { query } from "@/lib/db"
+import { supabase } from "@/lib/db"
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -11,14 +11,21 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const { id } = await params
     const { name, type, color, icon } = await request.json()
 
-    await query("UPDATE categories SET name = ?, type = ?, color = ?, icon = ? WHERE id = ? AND user_id = ?", [
-      name,
-      type,
-      color,
-      icon,
-      id,
-      userId,
-    ])
+    const { error } = await supabase
+      .from("categories")
+      .update({
+        name,
+        type,
+        color,
+        icon,
+      })
+      .eq("id", id)
+      .eq("user_id", userId)
+
+    if (error) {
+      console.error("Update category error:", error)
+      return NextResponse.json({ success: false, error: "Terjadi kesalahan server" }, { status: 500 })
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {
@@ -35,7 +42,16 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     }
 
     const { id } = await params
-    await query("DELETE FROM categories WHERE id = ? AND user_id = ?", [id, userId])
+    const { error } = await supabase
+      .from("categories")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", userId)
+
+    if (error) {
+      console.error("Delete category error:", error)
+      return NextResponse.json({ success: false, error: "Terjadi kesalahan server" }, { status: 500 })
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {

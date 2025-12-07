@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { query } from "@/lib/db"
+import { supabase } from "@/lib/db"
 import type { Reminder } from "@/types"
 
 export async function GET(request: Request) {
@@ -12,23 +12,38 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "User ID required" }, { status: 400 })
     }
 
-    let sql = `
-      SELECT
-        id, user_id as userId, title, description, amount,
-        due_date as dueDate, reminder_date as reminderDate,
-        type, related_id as relatedId, is_completed as isCompleted,
-        created_at as createdAt
-      FROM reminders
-      WHERE user_id = ? AND is_completed = false
-    `
+    let query = supabase
+      .from("reminders")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("is_completed", false)
 
     if (upcoming) {
-      sql += ` AND reminder_date <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)`
+      const sevenDaysFromNow = new Date()
+      sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7)
+      query = query.lte("reminder_date", sevenDaysFromNow.toISOString().split('T')[0])
     }
 
-    sql += ` ORDER BY reminder_date ASC`
+    const { data, error } = await query.order("reminder_date", { ascending: true })
 
-    const reminders = await query<Reminder[]>(sql, [userId])
+    if (error) {
+      throw error
+    }
+
+    // Map snake_case to camelCase
+    const reminders: Reminder[] = (data || []).map(r => ({
+      id: r.id,
+      userId: r.user_id,
+      title: r.title,
+      description: r.description,
+      amount: r.amount,
+      dueDate: r.due_date,
+      reminderDate: r.reminder_date,
+      type: r.type,
+      relatedId: r.related_id,
+      isCompleted: r.is_completed,
+      createdAt: r.created_at,
+    }))
 
     return NextResponse.json(reminders)
   } catch (error: unknown) {
@@ -57,26 +72,40 @@ export async function POST(request: Request) {
 
     const id = crypto.randomUUID()
 
-    await query(
-      `INSERT INTO reminders
-       (id, user_id, title, description, amount, due_date, reminder_date, type, related_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        id, userId, title, description || '', amount || 0,
-        dueDate, reminderDate, type, relatedId || null
-      ]
-    )
+    const { data, error } = await supabase
+      .from("reminders")
+      .insert({
+        id,
+        user_id: userId,
+        title,
+        description: description || '',
+        amount: amount || 0,
+        due_date: dueDate,
+        reminder_date: reminderDate,
+        type,
+        related_id: relatedId || null
+      })
+      .select()
+      .single()
 
-    const [reminder] = await query<Reminder[]>(
-      `SELECT
-        id, user_id as userId, title, description, amount,
-        due_date as dueDate, reminder_date as reminderDate,
-        type, related_id as relatedId, is_completed as isCompleted,
-        created_at as createdAt
-      FROM reminders
-      WHERE id = ?`,
-      [id]
-    )
+    if (error) {
+      throw error
+    }
+
+    // Map snake_case to camelCase
+    const reminder: Reminder = {
+      id: data.id,
+      userId: data.user_id,
+      title: data.title,
+      description: data.description,
+      amount: data.amount,
+      dueDate: data.due_date,
+      reminderDate: data.reminder_date,
+      type: data.type,
+      relatedId: data.related_id,
+      isCompleted: data.is_completed,
+      createdAt: data.created_at,
+    }
 
     return NextResponse.json(reminder, { status: 201 })
   } catch (error: unknown) {
