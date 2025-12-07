@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { supabase } from "@/lib/db"
+import { query } from "@/lib/db"
 
 export async function PUT(
   request: Request,
@@ -10,31 +10,19 @@ export async function PUT(
     const body = await request.json()
     const { title, description, amount, dueDate, reminderDate, type, isCompleted } = body
 
-    let error
-
     if (isCompleted !== undefined) {
-      const result = await supabase
-        .from("reminders")
-        .update({ is_completed: isCompleted })
-        .eq("id", id)
-      error = result.error
+      await query(
+        `UPDATE reminders SET is_completed = ? WHERE id = ?`,
+        [isCompleted, id]
+      )
     } else {
-      const result = await supabase
-        .from("reminders")
-        .update({
-          title,
-          description,
-          amount,
-          due_date: dueDate,
-          reminder_date: reminderDate,
-          type
-        })
-        .eq("id", id)
-      error = result.error
-    }
-
-    if (error) {
-      throw error
+      await query(
+        `UPDATE reminders
+         SET title = ?, description = ?, amount = ?, due_date = ?,
+             reminder_date = ?, type = ?
+         WHERE id = ?`,
+        [title, description, amount, dueDate, reminderDate, type, id]
+      )
     }
 
     return NextResponse.json({ message: "Reminder updated successfully" })
@@ -54,14 +42,7 @@ export async function DELETE(
   try {
     const { id } = await params
 
-    const { error } = await supabase
-      .from("reminders")
-      .delete()
-      .eq("id", id)
-
-    if (error) {
-      throw error
-    }
+    await query("DELETE FROM reminders WHERE id = ?", [id])
 
     return NextResponse.json({ message: "Reminder deleted successfully" })
   } catch (error: unknown) {

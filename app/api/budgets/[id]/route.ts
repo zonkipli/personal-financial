@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { supabase } from "@/lib/db"
+import { query } from "@/lib/db"
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -11,16 +11,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const { id } = await params
     const { amount } = await request.json()
 
-    const { error } = await supabase
-      .from("budgets")
-      .update({ amount })
-      .eq("id", id)
-      .eq("user_id", userId)
-
-    if (error) {
-      console.error("Update budget error:", error)
-      return NextResponse.json({ success: false, error: "Terjadi kesalahan server" }, { status: 500 })
-    }
+    await query("UPDATE budgets SET amount = ? WHERE id = ? AND user_id = ?", [amount, id, userId])
 
     return NextResponse.json({ success: true })
   } catch (error) {
@@ -37,16 +28,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     }
 
     const { id } = await params
-    const { error } = await supabase
-      .from("budgets")
-      .delete()
-      .eq("id", id)
-      .eq("user_id", userId)
-
-    if (error) {
-      console.error("Delete budget error:", error)
-      return NextResponse.json({ success: false, error: "Terjadi kesalahan server" }, { status: 500 })
-    }
+    await query("DELETE FROM budgets WHERE id = ? AND user_id = ?", [id, userId])
 
     return NextResponse.json({ success: true })
   } catch (error) {

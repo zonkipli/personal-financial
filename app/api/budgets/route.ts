@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { supabase, generateUUID } from "@/lib/db"
+import { query, generateUUID, formatDateForMySQL } from "@/lib/db"
 
 interface BudgetRow {
   id: string
@@ -8,7 +8,7 @@ interface BudgetRow {
   amount: number
   month: number
   year: number
-  created_at: string
+  created_at: Date | string
 }
 
 export async function GET(request: NextRequest) {
@@ -18,26 +18,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
     }
 
-    const { data: budgets, error } = await supabase
-      .from("budgets")
-      .select("id, user_id, category_id, amount, month, year, created_at")
-      .eq("user_id", userId)
-
-    if (error) {
-      console.error("[v0] Get budgets error:", error)
-      return NextResponse.json({ success: false, error: "Terjadi kesalahan server" }, { status: 500 })
-    }
+    const budgets = await query<BudgetRow[]>(
+      "SELECT id, user_id, category_id, amount, month, year, created_at FROM budgets WHERE user_id = ?",
+      [userId],
+    )
 
     return NextResponse.json({
       success: true,
-      budgets: (budgets || []).map((b: BudgetRow) => ({
+      budgets: budgets.map((b) => ({
         id: b.id,
         userId: b.user_id,
         categoryId: b.category_id,
         amount: Number(b.amount),
         month: b.month,
         year: b.year,
-        createdAt: b.created_at,
+        createdAt: typeof b.created_at === "string" ? b.created_at : new Date(b.created_at).toISOString(),
       })),
     })
   } catch (error) {
@@ -56,71 +51,37 @@ export async function POST(request: NextRequest) {
     const { categoryId, amount, month, year } = await request.json()
 
     // Check if budget exists for this period
-    let existingQuery = supabase
-      .from("budgets")
-      .select("id, created_at")
-      .eq("user_id", userId)
-      .eq("month", month)
-      .eq("year", year)
+    const existing = await query<BudgetRow[]>(
+      "SELECT id FROM budgets WHERE user_id = ? AND (category_id = ? OR (category_id IS NULL AND ? IS NULL)) AND month = ? AND year = ?",
+      [userId, categoryId, categoryId, month, year],
+    )
 
-    if (categoryId) {
-      existingQuery = existingQuery.eq("category_id", categoryId)
-    } else {
-      existingQuery = existingQuery.is("category_id", null)
-    }
-
-    const { data: existing, error: selectError } = await existingQuery.maybeSingle()
-
-    if (selectError) {
-      console.error("[v0] Check budget error:", selectError)
-      return NextResponse.json({ success: false, error: "Terjadi kesalahan server" }, { status: 500 })
-    }
-
-    if (existing) {
+    if (existing.length > 0) {
       // Update existing
-      const { error: updateError } = await supabase
-        .from("budgets")
-        .update({ amount })
-        .eq("id", existing.id)
-
-      if (updateError) {
-        console.error("[v0] Update budget error:", updateError)
-        return NextResponse.json({ success: false, error: "Terjadi kesalahan server" }, { status: 500 })
-      }
-
+      await query("UPDATE budgets SET amount = ? WHERE id = ?", [amount, existing[0].id])
       return NextResponse.json({
         success: true,
         budget: {
-          id: existing.id,
+          id: existing[0].id,
           userId,
           categoryId,
           amount,
           month,
           year,
-          createdAt: existing.created_at,
+          createdAt: formatDateForMySQL(),
         },
       })
     }
 
-    // Create new budget
     const budgetId = generateUUID()
-    const { data: newBudget, error: insertError } = await supabase
-      .from("budgets")
-      .insert({
-        id: budgetId,
-        user_id: userId,
-        category_id: categoryId,
-        amount,
-        month,
-        year,
-      })
-      .select("created_at")
-      .single()
-
-    if (insertError) {
-      console.error("[v0] Create budget error:", insertError)
-      return NextResponse.json({ success: false, error: "Terjadi kesalahan server" }, { status: 500 })
-    }
+    await query("INSERT INTO budgets (id, user_id, category_id, amount, month, year) VALUES (?, ?, ?, ?, ?, ?)", [
+      budgetId,
+      userId,
+      categoryId,
+      amount,
+      month,
+      year,
+    ])
 
     return NextResponse.json({
       success: true,
@@ -131,7 +92,7 @@ export async function POST(request: NextRequest) {
         amount,
         month,
         year,
-        createdAt: newBudget?.created_at || new Date().toISOString(),
+        createdAt: formatDateForMySQL(),
       },
     })
   } catch (error) {

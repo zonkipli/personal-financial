@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase, generateUUID } from "@/lib/db";
+import { query, generateUUID, formatDateForMySQL } from "@/lib/db";
 import type { SavingsGoal } from "@/types";
 
 export async function GET(request: NextRequest) {
@@ -9,22 +9,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data: goals, error } = await supabase
-      .from("savings_goals")
-      .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      console.error("Error fetching savings goals:", error);
-      return NextResponse.json(
-        { error: "Failed to fetch savings goals" },
-        { status: 500 }
-      );
-    }
+    const goals = await query<any[]>(
+      "SELECT * FROM savings_goals WHERE user_id = ? ORDER BY created_at DESC",
+      [userId]
+    );
 
     // Map snake_case to camelCase and ensure numeric fields
-    const formattedGoals = (goals || []).map(goal => ({
+    const formattedGoals = goals.map(goal => ({
       id: goal.id,
       userId: goal.user_id,
       name: goal.name,
@@ -33,7 +24,7 @@ export async function GET(request: NextRequest) {
       deadline: goal.deadline,
       description: goal.description,
       isCompleted: Boolean(goal.is_completed),
-      createdAt: goal.created_at,
+      createdAt: typeof goal.created_at === "string" ? goal.created_at : new Date(goal.created_at).toISOString(),
     }));
 
     return NextResponse.json(formattedGoals);
@@ -64,28 +55,23 @@ export async function POST(request: NextRequest) {
     }
 
     const id = generateUUID();
-    const now = new Date().toISOString();
+    const now = formatDateForMySQL();
 
-    const { error } = await supabase
-      .from("savings_goals")
-      .insert({
+    await query(
+      `INSERT INTO savings_goals
+       (id, user_id, name, target_amount, current_amount, deadline, description, is_completed, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, false, ?)`,
+      [
         id,
-        user_id: userId,
+        userId,
         name,
-        target_amount: targetAmount,
-        current_amount: currentAmount || 0,
-        deadline: deadline || null,
-        description: description || "",
-        is_completed: false,
-      });
-
-    if (error) {
-      console.error("Error creating savings goal:", error);
-      return NextResponse.json(
-        { error: "Failed to create savings goal" },
-        { status: 500 }
-      );
-    }
+        targetAmount,
+        currentAmount || 0,
+        deadline || null,
+        description || "",
+        now,
+      ]
+    );
 
     const newGoal: SavingsGoal = {
       id,

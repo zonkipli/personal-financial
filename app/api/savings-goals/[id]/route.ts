@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/db";
+import { query } from "@/lib/db";
 
 export async function PUT(
   request: NextRequest,
@@ -13,48 +13,52 @@ export async function PUT(
 
     const body = await request.json();
 
-    // Build dynamic update object based on provided fields
-    const updates: Record<string, any> = {};
+    // Build dynamic update query based on provided fields
+    const updates: string[] = [];
+    const values: any[] = [];
 
     if (body.name !== undefined) {
-      updates.name = body.name;
+      updates.push("name = ?");
+      values.push(body.name);
     }
     if (body.targetAmount !== undefined) {
-      updates.target_amount = body.targetAmount;
+      updates.push("target_amount = ?");
+      values.push(body.targetAmount);
     }
     if (body.currentAmount !== undefined) {
-      updates.current_amount = body.currentAmount;
+      updates.push("current_amount = ?");
+      values.push(body.currentAmount);
     }
     if (body.deadline !== undefined) {
-      updates.deadline = body.deadline || null;
+      updates.push("deadline = ?");
+      values.push(body.deadline || null);
     }
     if (body.description !== undefined) {
-      updates.description = body.description || "";
+      updates.push("description = ?");
+      values.push(body.description || "");
     }
     if (body.isCompleted !== undefined) {
-      updates.is_completed = body.isCompleted;
+      updates.push("is_completed = ?");
+      values.push(body.isCompleted);
     }
 
-    if (Object.keys(updates).length === 0) {
+    if (updates.length === 0) {
       return NextResponse.json(
         { error: "No fields to update" },
         { status: 400 }
       );
     }
 
-    const { error } = await supabase
-      .from("savings_goals")
-      .update(updates)
-      .eq("id", params.id)
-      .eq("user_id", userId);
+    // Add WHERE clause values
+    values.push(params.id);
+    values.push(userId);
 
-    if (error) {
-      console.error("Error updating savings goal:", error);
-      return NextResponse.json(
-        { error: "Failed to update savings goal" },
-        { status: 500 }
-      );
-    }
+    await query(
+      `UPDATE savings_goals
+       SET ${updates.join(", ")}
+       WHERE id = ? AND user_id = ?`,
+      values
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -76,19 +80,10 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { error } = await supabase
-      .from("savings_goals")
-      .delete()
-      .eq("id", params.id)
-      .eq("user_id", userId);
-
-    if (error) {
-      console.error("Error deleting savings goal:", error);
-      return NextResponse.json(
-        { error: "Failed to delete savings goal" },
-        { status: 500 }
-      );
-    }
+    await query(
+      "DELETE FROM savings_goals WHERE id = ? AND user_id = ?",
+      [params.id, userId]
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { supabase } from "@/lib/db"
+import { query } from "@/lib/db"
 import type { AccountTransfer } from "@/types"
 
 export async function GET(request: Request) {
@@ -11,26 +11,16 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "User ID required" }, { status: 400 })
     }
 
-    const { data: transfersData, error } = await supabase
-      .from('account_transfers')
-      .select('id, user_id, from_account_id, to_account_id, amount, description, date, created_at')
-      .eq('user_id', userId)
-      .order('date', { ascending: false })
-      .order('created_at', { ascending: false })
-
-    if (error) throw error
-
-    // Map database fields to camelCase
-    const transfers = (transfersData || []).map(transfer => ({
-      id: transfer.id,
-      userId: transfer.user_id,
-      fromAccountId: transfer.from_account_id,
-      toAccountId: transfer.to_account_id,
-      amount: transfer.amount,
-      description: transfer.description,
-      date: transfer.date,
-      createdAt: transfer.created_at
-    }))
+    const transfers = await query<AccountTransfer[]>(
+      `SELECT
+        id, user_id as userId, from_account_id as fromAccountId,
+        to_account_id as toAccountId, amount, description, date,
+        created_at as createdAt
+      FROM account_transfers
+      WHERE user_id = ?
+      ORDER BY date DESC, created_at DESC`,
+      [userId]
+    )
 
     return NextResponse.json(transfers)
   } catch (error: unknown) {
@@ -64,87 +54,45 @@ export async function POST(request: Request) {
     const id = crypto.randomUUID()
     const transferDate = date || new Date().toISOString().split('T')[0]
 
-    // Insert transfer record
-    const { error: insertError } = await supabase
-      .from('account_transfers')
-      .insert({
-        id,
-        user_id: userId,
-        from_account_id: fromAccountId,
-        to_account_id: toAccountId,
-        amount,
-        description: description || '',
-        date: transferDate
-      })
+    // Start transaction
+    await query("START TRANSACTION")
 
-    if (insertError) throw insertError
+    try {
+      // Insert transfer record
+      await query(
+        `INSERT INTO account_transfers (id, user_id, from_account_id, to_account_id, amount, description, date)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [id, userId, fromAccountId, toAccountId, amount, description || '', transferDate]
+      )
 
-    // Update balance for "from" account (decrease)
-    const { data: fromAccount, error: fromAccountError } = await supabase
-      .from('accounts')
-      .select('balance')
-      .eq('id', fromAccountId)
-      .maybeSingle()
+      // Update balances
+      await query(
+        "UPDATE accounts SET balance = balance - ? WHERE id = ?",
+        [amount, fromAccountId]
+      )
 
-    if (fromAccountError) throw fromAccountError
+      await query(
+        "UPDATE accounts SET balance = balance + ? WHERE id = ?",
+        [amount, toAccountId]
+      )
 
-    if (!fromAccount) {
-      throw new Error("From account not found")
+      await query("COMMIT")
+
+      const [transfer] = await query<AccountTransfer[]>(
+        `SELECT
+          id, user_id as userId, from_account_id as fromAccountId,
+          to_account_id as toAccountId, amount, description, date,
+          created_at as createdAt
+        FROM account_transfers
+        WHERE id = ?`,
+        [id]
+      )
+
+      return NextResponse.json(transfer, { status: 201 })
+    } catch (error) {
+      await query("ROLLBACK")
+      throw error
     }
-
-    const { error: updateFromError } = await supabase
-      .from('accounts')
-      .update({ balance: Number(fromAccount.balance) - Number(amount) })
-      .eq('id', fromAccountId)
-
-    if (updateFromError) throw updateFromError
-
-    // Update balance for "to" account (increase)
-    const { data: toAccount, error: toAccountError } = await supabase
-      .from('accounts')
-      .select('balance')
-      .eq('id', toAccountId)
-      .maybeSingle()
-
-    if (toAccountError) throw toAccountError
-
-    if (!toAccount) {
-      throw new Error("To account not found")
-    }
-
-    const { error: updateToError } = await supabase
-      .from('accounts')
-      .update({ balance: Number(toAccount.balance) + Number(amount) })
-      .eq('id', toAccountId)
-
-    if (updateToError) throw updateToError
-
-    // Fetch the created transfer
-    const { data: transfer, error: selectError } = await supabase
-      .from('account_transfers')
-      .select('id, user_id, from_account_id, to_account_id, amount, description, date, created_at')
-      .eq('id', id)
-      .maybeSingle()
-
-    if (selectError) throw selectError
-
-    if (!transfer) {
-      throw new Error("Failed to retrieve created transfer")
-    }
-
-    // Map database fields to camelCase
-    const formattedTransfer = {
-      id: transfer.id,
-      userId: transfer.user_id,
-      fromAccountId: transfer.from_account_id,
-      toAccountId: transfer.to_account_id,
-      amount: transfer.amount,
-      description: transfer.description,
-      date: transfer.date,
-      createdAt: transfer.created_at
-    }
-
-    return NextResponse.json(formattedTransfer, { status: 201 })
   } catch (error: unknown) {
     console.error("Error creating transfer:", error)
     return NextResponse.json(

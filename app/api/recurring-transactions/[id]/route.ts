@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/db";
+import { query } from "@/lib/db";
 
 export async function PUT(
   request: NextRequest,
@@ -14,50 +14,60 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
-    // Build dynamic update object based on provided fields
-    const updates: Record<string, any> = {};
+    // Build dynamic update query based on provided fields
+    const updates: string[] = [];
+    const values: any[] = [];
 
     if (body.categoryId !== undefined) {
-      updates.category_id = body.categoryId;
+      updates.push("category_id = ?");
+      values.push(body.categoryId);
     }
     if (body.type !== undefined) {
-      updates.type = body.type;
+      updates.push("type = ?");
+      values.push(body.type);
     }
     if (body.amount !== undefined) {
-      updates.amount = body.amount;
+      updates.push("amount = ?");
+      values.push(body.amount);
     }
     if (body.description !== undefined) {
-      updates.description = body.description || "";
+      updates.push("description = ?");
+      values.push(body.description || "");
     }
     if (body.frequency !== undefined) {
-      updates.frequency = body.frequency;
+      updates.push("frequency = ?");
+      values.push(body.frequency);
     }
     if (body.startDate !== undefined) {
-      updates.start_date = body.startDate;
+      updates.push("start_date = ?");
+      values.push(body.startDate);
     }
     if (body.endDate !== undefined) {
-      updates.end_date = body.endDate || null;
+      updates.push("end_date = ?");
+      values.push(body.endDate || null);
     }
     if (body.isActive !== undefined) {
-      updates.is_active = body.isActive;
+      updates.push("is_active = ?");
+      values.push(body.isActive);
     }
 
-    if (Object.keys(updates).length === 0) {
+    if (updates.length === 0) {
       return NextResponse.json(
         { error: "No fields to update" },
         { status: 400 }
       );
     }
 
-    const { error } = await supabase
-      .from("recurring_transactions")
-      .update(updates)
-      .eq("id", id)
-      .eq("user_id", userId);
+    // Add WHERE clause values
+    values.push(id);
+    values.push(userId);
 
-    if (error) {
-      throw error;
-    }
+    await query(
+      `UPDATE recurring_transactions
+       SET ${updates.join(", ")}
+       WHERE id = ? AND user_id = ?`,
+      values
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -81,15 +91,10 @@ export async function DELETE(
 
     const { id } = await params;
 
-    const { error } = await supabase
-      .from("recurring_transactions")
-      .delete()
-      .eq("id", id)
-      .eq("user_id", userId);
-
-    if (error) {
-      throw error;
-    }
+    await query(
+      "DELETE FROM recurring_transactions WHERE id = ? AND user_id = ?",
+      [id, userId]
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {

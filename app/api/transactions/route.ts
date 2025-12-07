@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { supabase, generateUUID } from "@/lib/db"
+import { query, generateUUID, formatDateForMySQL } from "@/lib/db"
 
 interface TransactionRow {
   id: string
@@ -19,21 +19,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
     }
 
-    const { data: transactions, error } = await supabase
-      .from("transactions")
-      .select("id, user_id, category_id, type, amount, description, date, created_at")
-      .eq("user_id", userId)
-      .order("date", { ascending: false })
-      .order("created_at", { ascending: false })
-
-    if (error) {
-      console.error("[v0] Get transactions error:", error)
-      return NextResponse.json({ success: false, error: "Terjadi kesalahan server" }, { status: 500 })
-    }
+    const transactions = await query<TransactionRow[]>(
+      "SELECT id, user_id, category_id, type, amount, description, date, created_at FROM transactions WHERE user_id = ? ORDER BY date DESC, created_at DESC",
+      [userId],
+    )
 
     return NextResponse.json({
       success: true,
-      transactions: (transactions || []).map((t: TransactionRow) => ({
+      transactions: transactions.map((t) => ({
         id: t.id,
         userId: t.user_id,
         categoryId: t.category_id,
@@ -60,36 +53,22 @@ export async function POST(request: NextRequest) {
     const { categoryId, type, amount, description, date } = await request.json()
 
     const transactionId = generateUUID()
-    const { data, error } = await supabase
-      .from("transactions")
-      .insert({
-        id: transactionId,
-        user_id: userId,
-        category_id: categoryId,
-        type,
-        amount,
-        description: description || "",
-        date,
-      })
-      .select()
-      .single()
-
-    if (error) {
-      console.error("[v0] Create transaction error:", error)
-      return NextResponse.json({ success: false, error: "Terjadi kesalahan server" }, { status: 500 })
-    }
+    await query(
+      "INSERT INTO transactions (id, user_id, category_id, type, amount, description, date) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [transactionId, userId, categoryId, type, amount, description || "", date],
+    )
 
     return NextResponse.json({
       success: true,
       transaction: {
-        id: data.id,
-        userId: data.user_id,
-        categoryId: data.category_id,
-        type: data.type,
-        amount: data.amount,
-        description: data.description,
-        date: data.date,
-        createdAt: data.created_at,
+        id: transactionId,
+        userId,
+        categoryId,
+        type,
+        amount,
+        description: description || "",
+        date,
+        createdAt: formatDateForMySQL(),
       },
     })
   } catch (error) {

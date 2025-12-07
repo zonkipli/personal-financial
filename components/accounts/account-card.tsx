@@ -19,14 +19,6 @@ interface AccountCardProps {
 export function AccountCard({ account, icon, onUpdate }: AccountCardProps) {
   const [isEditOpen, setIsEditOpen] = useState(false)
 
-  const handleCloseDialog = (open: boolean) => {
-    setIsEditOpen(open)
-    if (!open) {
-      // Force cleanup of any lingering overlays
-      document.body.style.pointerEvents = ''
-    }
-  }
-
   const handleDelete = async () => {
     if (!confirm(`Hapus akun ${account.name}?`)) return
 
@@ -82,7 +74,7 @@ export function AccountCard({ account, icon, onUpdate }: AccountCardProps) {
         </div>
       </Card>
 
-      <Dialog open={isEditOpen} onOpenChange={handleCloseDialog} modal={true}>
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Akun</DialogTitle>
@@ -90,7 +82,7 @@ export function AccountCard({ account, icon, onUpdate }: AccountCardProps) {
           <AccountForm
             account={account}
             onSuccess={() => {
-              handleCloseDialog(false)
+              setIsEditOpen(false)
               onUpdate()
             }}
           />

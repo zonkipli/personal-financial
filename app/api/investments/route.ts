@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { supabase } from "@/lib/db"
+import { query } from "@/lib/db"
 import type { Investment } from "@/types"
 
 export async function GET(request: Request) {
@@ -11,29 +11,17 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "User ID required" }, { status: 400 })
     }
 
-    const { data: investmentsData, error } = await supabase
-      .from('investments')
-      .select('id, user_id, name, type, symbol, quantity, buy_price, current_price, currency, purchase_date, notes, created_at')
-      .eq('user_id', userId)
-      .order('purchase_date', { ascending: false })
-
-    if (error) throw error
-
-    // Map database fields to camelCase
-    const investments = (investmentsData || []).map(inv => ({
-      id: inv.id,
-      userId: inv.user_id,
-      name: inv.name,
-      type: inv.type,
-      symbol: inv.symbol,
-      quantity: inv.quantity,
-      buyPrice: inv.buy_price,
-      currentPrice: inv.current_price,
-      currency: inv.currency,
-      purchaseDate: inv.purchase_date,
-      notes: inv.notes,
-      createdAt: inv.created_at
-    }))
+    const investments = await query<Investment[]>(
+      `SELECT
+        id, user_id as userId, name, type, symbol, quantity,
+        buy_price as buyPrice, current_price as currentPrice,
+        currency, purchase_date as purchaseDate, notes,
+        created_at as createdAt
+      FROM investments
+      WHERE user_id = ?
+      ORDER BY purchase_date DESC`,
+      [userId]
+    )
 
     // Calculate totals
     const totalValue = investments.reduce((sum, inv) => {
@@ -77,53 +65,28 @@ export async function POST(request: Request) {
 
     const id = crypto.randomUUID()
 
-    const { error: insertError } = await supabase
-      .from('investments')
-      .insert({
-        id,
-        user_id: userId,
-        name,
-        type,
-        symbol: symbol || '',
-        quantity: quantity || 0,
-        buy_price: buyPrice,
-        current_price: currentPrice,
-        currency: currency || 'IDR',
-        purchase_date: purchaseDate,
-        notes: notes || ''
-      })
+    await query(
+      `INSERT INTO investments
+       (id, user_id, name, type, symbol, quantity, buy_price, current_price, currency, purchase_date, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id, userId, name, type, symbol || '', quantity || 0,
+        buyPrice, currentPrice, currency || 'IDR', purchaseDate, notes || ''
+      ]
+    )
 
-    if (insertError) throw insertError
+    const [investment] = await query<Investment[]>(
+      `SELECT
+        id, user_id as userId, name, type, symbol, quantity,
+        buy_price as buyPrice, current_price as currentPrice,
+        currency, purchase_date as purchaseDate, notes,
+        created_at as createdAt
+      FROM investments
+      WHERE id = ?`,
+      [id]
+    )
 
-    const { data: investment, error: selectError } = await supabase
-      .from('investments')
-      .select('id, user_id, name, type, symbol, quantity, buy_price, current_price, currency, purchase_date, notes, created_at')
-      .eq('id', id)
-      .maybeSingle()
-
-    if (selectError) throw selectError
-
-    if (!investment) {
-      throw new Error("Failed to retrieve created investment")
-    }
-
-    // Map database fields to camelCase
-    const formattedInvestment = {
-      id: investment.id,
-      userId: investment.user_id,
-      name: investment.name,
-      type: investment.type,
-      symbol: investment.symbol,
-      quantity: investment.quantity,
-      buyPrice: investment.buy_price,
-      currentPrice: investment.current_price,
-      currency: investment.currency,
-      purchaseDate: investment.purchase_date,
-      notes: investment.notes,
-      createdAt: investment.created_at
-    }
-
-    return NextResponse.json(formattedInvestment, { status: 201 })
+    return NextResponse.json(investment, { status: 201 })
   } catch (error: unknown) {
     console.error("Error creating investment:", error)
     return NextResponse.json(
