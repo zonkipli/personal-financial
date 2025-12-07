@@ -9,16 +9,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const goals = await query<SavingsGoal[]>(
+    const goals = await query<any[]>(
       "SELECT * FROM savings_goals WHERE user_id = ? ORDER BY created_at DESC",
       [userId]
     );
 
-    // Ensure numeric fields are numbers, not strings
+    // Map snake_case to camelCase and ensure numeric fields
     const formattedGoals = goals.map(goal => ({
-      ...goal,
-      targetAmount: Number(goal.targetAmount) || 0,
-      currentAmount: Number(goal.currentAmount) || 0,
+      id: goal.id,
+      userId: goal.user_id,
+      name: goal.name,
+      targetAmount: Number(goal.target_amount) || 0,
+      currentAmount: Number(goal.current_amount) || 0,
+      deadline: goal.deadline,
+      description: goal.description,
+      isCompleted: Boolean(goal.is_completed),
+      createdAt: typeof goal.created_at === "string" ? goal.created_at : new Date(goal.created_at).toISOString(),
     }));
 
     return NextResponse.json(formattedGoals);

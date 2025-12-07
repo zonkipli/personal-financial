@@ -9,15 +9,25 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const recurring = await query<RecurringTransaction[]>(
+    const recurring = await query<any[]>(
       "SELECT * FROM recurring_transactions WHERE user_id = ? ORDER BY created_at DESC",
       [userId]
     );
 
-    // Ensure numeric fields are numbers, not strings
+    // Map snake_case to camelCase and ensure numeric fields
     const formattedRecurring = recurring.map(r => ({
-      ...r,
+      id: r.id,
+      userId: r.user_id,
+      categoryId: r.category_id,
+      type: r.type,
       amount: Number(r.amount) || 0,
+      description: r.description,
+      frequency: r.frequency,
+      startDate: r.start_date,
+      endDate: r.end_date,
+      isActive: Boolean(r.is_active),
+      lastProcessed: r.last_processed,
+      createdAt: typeof r.created_at === "string" ? r.created_at : new Date(r.created_at).toISOString(),
     }));
 
     return NextResponse.json(formattedRecurring);
