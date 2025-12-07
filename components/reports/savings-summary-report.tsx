@@ -12,8 +12,8 @@ export function SavingsSummaryReport() {
   const { savingsGoals } = useFinance();
   const { maskAmount } = usePrivacy();
 
-  const activeSavings = savingsGoals.filter((g) => g.status === "active");
-  const completedSavings = savingsGoals.filter((g) => g.status === "completed");
+  const activeSavings = savingsGoals.filter((g) => !g.isCompleted);
+  const completedSavings = savingsGoals.filter((g) => g.isCompleted);
 
   const totalTargetAmount = activeSavings.reduce(
     (sum, g) => sum + g.targetAmount,

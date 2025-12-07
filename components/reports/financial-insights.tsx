@@ -157,7 +157,7 @@ export function FinancialInsights({ month, year }: FinancialInsightsProps) {
     }
   }
 
-  const activeSavings = savingsGoals.filter((g) => g.status === "active");
+  const activeSavings = savingsGoals.filter((g) => !g.isCompleted);
   const nearDeadlineSavings = activeSavings.filter((g) => {
     if (!g.deadline) return false;
     const daysUntilDeadline = Math.ceil(
@@ -181,8 +181,8 @@ export function FinancialInsights({ month, year }: FinancialInsightsProps) {
   }
 
   const completedThisMonth = savingsGoals.filter((g) => {
-    if (g.status !== "completed" || !g.updatedAt) return false;
-    const date = new Date(g.updatedAt);
+    if (!g.isCompleted) return false;
+    const date = new Date(g.createdAt);
     return date.getMonth() + 1 === month && date.getFullYear() === year;
   });
 

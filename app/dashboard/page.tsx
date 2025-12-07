@@ -21,15 +21,15 @@ export default function DashboardPage() {
   const month = getCurrentMonth()
   const year = getCurrentYear()
 
-  const activeDebts = debts.filter((d) => d.status === "active")
+  const activeDebts = debts.filter((d) => !d.isPaid)
   const totalDebtAmount = activeDebts
-    .filter((d) => d.type === "debt")
-    .reduce((sum, d) => sum + (d.amount - d.paidAmount), 0)
+    .filter((d) => d.type === "payable")
+    .reduce((sum, d) => sum + d.amount, 0)
   const totalReceivableAmount = activeDebts
     .filter((d) => d.type === "receivable")
-    .reduce((sum, d) => sum + (d.amount - d.paidAmount), 0)
+    .reduce((sum, d) => sum + d.amount, 0)
 
-  const activeSavingsGoals = savingsGoals.filter((g) => g.status === "active")
+  const activeSavingsGoals = savingsGoals.filter((g) => !g.isCompleted)
   const totalSavingsTarget = activeSavingsGoals.reduce((sum, g) => sum + g.targetAmount, 0)
   const totalSavingsProgress = activeSavingsGoals.reduce((sum, g) => sum + g.currentAmount, 0)
   const savingsPercentage = totalSavingsTarget > 0 ? (totalSavingsProgress / totalSavingsTarget) * 100 : 0
