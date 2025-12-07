@@ -16,6 +16,8 @@ import { FinancialInsights } from "@/components/reports/financial-insights";
 import { ExportButton } from "@/components/reports/export-button";
 import { DebtSummaryReport } from "@/components/reports/debt-summary-report";
 import { DebtExportButton } from "@/components/reports/debt-export-button";
+import { SavingsSummaryReport } from "@/components/reports/savings-summary-report";
+import { RecurringSummaryReport } from "@/components/reports/recurring-summary-report";
 import { getCurrentMonth, getCurrentYear, getMonthName } from "@/lib/format";
 
 export default function ReportsPage() {
@@ -55,12 +57,18 @@ export default function ReportsPage() {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <div className="flex flex-col gap-3 sm:gap-4">
-          <TabsList className="w-full sm:w-auto grid grid-cols-2 sm:flex">
+          <TabsList className="w-full sm:w-auto grid grid-cols-2 sm:grid-cols-4 sm:flex">
             <TabsTrigger value="transactions" className="text-xs sm:text-sm">
               Transaksi
             </TabsTrigger>
             <TabsTrigger value="debts" className="text-xs sm:text-sm">
               Utang Piutang
+            </TabsTrigger>
+            <TabsTrigger value="savings" className="text-xs sm:text-sm">
+              Target Tabungan
+            </TabsTrigger>
+            <TabsTrigger value="recurring" className="text-xs sm:text-sm">
+              Transaksi Berulang
             </TabsTrigger>
           </TabsList>
 
@@ -96,11 +104,11 @@ export default function ReportsPage() {
                 <ExportButton month={month} year={year} />
               </div>
             </div>
-          ) : (
+          ) : activeTab === "debts" ? (
             <div className="w-full sm:w-auto">
               <DebtExportButton />
             </div>
-          )}
+          ) : null}
         </div>
 
         {/* Transaction Reports */}
@@ -127,6 +135,16 @@ export default function ReportsPage() {
         {/* Debt Reports */}
         <TabsContent value="debts" className="mt-4 sm:mt-6">
           <DebtSummaryReport />
+        </TabsContent>
+
+        {/* Savings Reports */}
+        <TabsContent value="savings" className="mt-4 sm:mt-6">
+          <SavingsSummaryReport />
+        </TabsContent>
+
+        {/* Recurring Reports */}
+        <TabsContent value="recurring" className="mt-4 sm:mt-6">
+          <RecurringSummaryReport />
         </TabsContent>
       </Tabs>
     </div>
