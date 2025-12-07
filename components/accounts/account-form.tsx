@@ -1,15 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import type { Account } from "@/types"
 
 interface AccountFormProps {
-  account?: Account
   onSuccess: () => void
 }
 
@@ -28,7 +26,7 @@ const COLORS = [
   "#10b981", "#3b82f6", "#8b5cf6", "#f59e0b", "#ef4444", "#ec4899"
 ]
 
-export function AccountForm({ account, onSuccess }: AccountFormProps) {
+export function AccountForm({ onSuccess }: AccountFormProps) {
   const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -40,36 +38,19 @@ export function AccountForm({ account, onSuccess }: AccountFormProps) {
     icon: "Wallet"
   })
 
-  useEffect(() => {
-    if (account) {
-      setFormData({
-        name: account.name,
-        type: account.type,
-        balance: String(account.balance),
-        currency: account.currency,
-        color: account.color,
-        icon: account.icon
-      })
-    }
-  }, [account])
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user) return
 
     setIsLoading(true)
     try {
-      const url = account ? `/api/accounts/${account.id}` : "/api/accounts"
-      const method = account ? "PUT" : "POST"
-
-      const res = await fetch(url, {
-        method,
+      const res = await fetch("/api/accounts", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId: user.id,
           ...formData,
-          balance: parseFloat(formData.balance) || 0,
-          isActive: account?.isActive ?? true
+          balance: parseFloat(formData.balance) || 0
         })
       })
 
@@ -77,7 +58,7 @@ export function AccountForm({ account, onSuccess }: AccountFormProps) {
         onSuccess()
       }
     } catch (error) {
-      console.error("Error saving account:", error)
+      console.error("Error creating account:", error)
     } finally {
       setIsLoading(false)
     }
@@ -140,7 +121,7 @@ export function AccountForm({ account, onSuccess }: AccountFormProps) {
       </div>
 
       <Button type="submit" className="w-full" disabled={isLoading}>
-        {isLoading ? "Menyimpan..." : account ? "Update Akun" : "Simpan Akun"}
+        {isLoading ? "Menyimpan..." : "Simpan Akun"}
       </Button>
     </form>
   )

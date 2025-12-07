@@ -26,7 +26,6 @@ import {
   TrendingUp,
   Users,
   Bell,
-  Tag,
 } from "lucide-react";
 
 const navigation = [
@@ -34,7 +33,6 @@ const navigation = [
   { name: "Akun & Dompet", href: "/dashboard/accounts", icon: Wallet },
   { name: "Transaksi", href: "/dashboard/transactions", icon: ArrowLeftRight },
   { name: "Kategori", href: "/dashboard/categories", icon: Tags },
-  { name: "Tags & Label", href: "/dashboard/tags", icon: Tag },
   { name: "Anggaran", href: "/dashboard/budget", icon: PiggyBank },
   { name: "Investasi", href: "/dashboard/investments", icon: TrendingUp },
   { name: "Utang Piutang", href: "/dashboard/debts", icon: HandCoins },

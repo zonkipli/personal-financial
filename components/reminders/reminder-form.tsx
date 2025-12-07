@@ -1,16 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import type { Reminder } from "@/types"
 
 interface ReminderFormProps {
-  reminder?: Reminder
   onSuccess: () => void
 }
 
@@ -22,7 +20,7 @@ const REMINDER_TYPES = [
   { value: "other", label: "Lainnya" }
 ]
 
-export function ReminderForm({ reminder, onSuccess }: ReminderFormProps) {
+export function ReminderForm({ onSuccess }: ReminderFormProps) {
   const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -34,30 +32,14 @@ export function ReminderForm({ reminder, onSuccess }: ReminderFormProps) {
     type: "bill"
   })
 
-  useEffect(() => {
-    if (reminder) {
-      setFormData({
-        title: reminder.title,
-        description: reminder.description,
-        amount: String(reminder.amount),
-        dueDate: reminder.dueDate.split('T')[0],
-        reminderDate: reminder.reminderDate.split('T')[0],
-        type: reminder.type
-      })
-    }
-  }, [reminder])
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user) return
 
     setIsLoading(true)
     try {
-      const url = reminder ? `/api/reminders/${reminder.id}` : "/api/reminders"
-      const method = reminder ? "PUT" : "POST"
-
-      const res = await fetch(url, {
-        method,
+      const res = await fetch("/api/reminders", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId: user.id,
@@ -70,7 +52,7 @@ export function ReminderForm({ reminder, onSuccess }: ReminderFormProps) {
         onSuccess()
       }
     } catch (error) {
-      console.error("Error saving reminder:", error)
+      console.error("Error creating reminder:", error)
     } finally {
       setIsLoading(false)
     }
@@ -152,7 +134,7 @@ export function ReminderForm({ reminder, onSuccess }: ReminderFormProps) {
       </div>
 
       <Button type="submit" className="w-full" disabled={isLoading}>
-        {isLoading ? "Menyimpan..." : reminder ? "Update Reminder" : "Simpan Reminder"}
+        {isLoading ? "Menyimpan..." : "Simpan Reminder"}
       </Button>
     </form>
   )

@@ -3,8 +3,7 @@
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Check, X, Trash, MoreVertical } from "lucide-react"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Check, X } from "lucide-react"
 import type { SplitBill, SplitBillParticipant } from "@/types"
 
 interface SplitBillWithParticipants extends SplitBill {
@@ -33,44 +32,16 @@ export function SplitBillCard({ bill, onUpdate }: SplitBillCardProps) {
     }
   }
 
-  const handleDelete = async () => {
-    if (!confirm(`Hapus patungan "${bill.title}"?`)) return
-
-    try {
-      await fetch(`/api/split-bills/${bill.id}`, {
-        method: "DELETE"
-      })
-      onUpdate()
-    } catch (error) {
-      console.error("Error deleting split bill:", error)
-    }
-  }
-
   return (
     <Card className="p-6">
       <div className="flex justify-between items-start mb-4">
-        <div className="flex-1">
+        <div>
           <h3 className="font-semibold text-lg mb-1">{bill.title}</h3>
           <p className="text-2xl font-bold">Rp {Number(bill.totalAmount).toLocaleString('id-ID')}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant={paidCount === totalCount ? "default" : "secondary"}>
-            {paidCount}/{totalCount} Lunas
-          </Badge>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleDelete} className="text-destructive">
-                <Trash className="h-4 w-4 mr-2" />
-                Hapus
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        <Badge variant={paidCount === totalCount ? "default" : "secondary"}>
+          {paidCount}/{totalCount} Lunas
+        </Badge>
       </div>
 
       <div className="space-y-2">

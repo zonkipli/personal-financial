@@ -8,22 +8,12 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
-    const { title, description, amount, dueDate, reminderDate, type, isCompleted } = body
+    const { isCompleted } = body
 
-    if (isCompleted !== undefined) {
-      await query(
-        `UPDATE reminders SET is_completed = ? WHERE id = ?`,
-        [isCompleted, id]
-      )
-    } else {
-      await query(
-        `UPDATE reminders
-         SET title = ?, description = ?, amount = ?, due_date = ?,
-             reminder_date = ?, type = ?
-         WHERE id = ?`,
-        [title, description, amount, dueDate, reminderDate, type, id]
-      )
-    }
+    await query(
+      `UPDATE reminders SET is_completed = ? WHERE id = ?`,
+      [isCompleted, id]
+    )
 
     return NextResponse.json({ message: "Reminder updated successfully" })
   } catch (error: unknown) {
