@@ -30,14 +30,14 @@ export async function PUT(
            start_date = ?, end_date = ?, is_active = ?
        WHERE id = ? AND user_id = ?`,
       [
-        categoryId,
-        type,
-        amount,
-        description || "",
-        frequency,
-        startDate,
-        endDate || null,
-        isActive,
+        categoryId ?? null,
+        type ?? null,
+        amount ?? null,
+        description ?? null,
+        frequency ?? null,
+        startDate ?? null,
+        endDate ?? null,
+        isActive ?? null,
         id,
         userId,
       ]
