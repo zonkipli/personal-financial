@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { query, generateUUID } from "@/lib/db";
+import { query, generateUUID, formatDateForMySQL } from "@/lib/db";
 import type { SavingsGoal } from "@/types";
 
 export async function GET(request: NextRequest) {
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     const id = generateUUID();
-    const now = new Date().toISOString();
+    const now = formatDateForMySQL();
 
     await query(
       `INSERT INTO savings_goals

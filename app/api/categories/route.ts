@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { query, generateUUID } from "@/lib/db"
+import { query, generateUUID, formatDateForMySQL } from "@/lib/db"
 
 interface CategoryRow {
   id: string
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
         type,
         color: color || "#6366f1",
         icon: icon || "CircleDollarSign",
-        createdAt: new Date().toISOString(),
+        createdAt: formatDateForMySQL(),
       },
     })
   } catch (error) {
