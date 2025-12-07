@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "lint": "eslint .",
-      "build": "next build && tsc -p tsconfig.server.json",
-  "start": "NODE_ENV=production node server-dist/server.js"
+    "build": "TURBOPACK=false next build && tsc -p tsconfig.server.json",
+    "start": "NODE_ENV=production node server-dist/server.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
